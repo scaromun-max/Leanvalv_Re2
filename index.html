@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leanvalv OMS | Centro de Mando Operacional</title>
+    
+    <!-- PWA / Offline Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#001233">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1973/1973809.png">
+
+    <!-- Librerías Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        :root { 
+            --bg-dark: #001233; --panel-bg: rgba(0, 85, 255, 0.15); --panel-border: rgba(0, 162, 255, 0.3); 
+            --accent-cyan: #00f2fe; --accent-pink: #ff4b72; --accent-purple: #a78bfa;
+            --accent-orange: #f59e0b; --accent-green: #4ade80; --text-main: #ffffff; --text-muted: #8ab4f8; 
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-dark); margin: 0; padding: 0; color: var(--text-main); overflow-x: hidden; min-height: 100vh; }
+        #wrapper { width: 100%; margin: 0 auto; padding: 10px 15px; box-sizing: border-box; }
+        
+        .top-fixed-section { position: sticky; top: 0; background-color: var(--bg-dark); z-index: 2000; padding-top: 10px; margin-top: -10px; padding-bottom: 5px; border-bottom: 1px solid rgba(0, 242, 254, 0.2); box-shadow: 0 5px 15px rgba(0, 18, 51, 0.9); }
+        header { background: linear-gradient(90deg, rgba(0, 60, 200, 0.4) 0%, rgba(0, 15, 50, 0.2) 100%); border: 1px solid var(--panel-border); border-left: 4px solid var(--accent-cyan); padding: 8px 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
+        header p { margin: 2px 0 0 0; color: var(--text-muted); font-size: 0.75rem; }
+        
+        .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .timestamp { color: var(--text-main); font-size: 0.7rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 5px;}
+        
+        .sync-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-green); display: inline-block; }
+        .sync-dot.loading { background-color: var(--accent-orange); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .btn-group { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .btn-refresh, .btn-print, .btn-fullscreen, .btn-tv { background: transparent; color: var(--text-main); border: 1px solid; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.7rem; cursor: pointer; transition: all 0.2s; }
+        .btn-refresh { border-color: var(--accent-cyan); box-shadow: 0 0 8px rgba(0, 242, 254, 0.2) inset; }
+        .btn-refresh:hover { background: rgba(0, 242, 254, 0.1); box-shadow: 0 0 12px rgba(0, 242, 254, 0.5); }
+        .btn-print { border-color: var(--text-muted); }
+        .btn-print:hover { background: rgba(255, 255, 255, 0.1); }
+        .btn-fullscreen { border-color: var(--accent-purple); }
+        .btn-tv { border-color: var(--accent-orange); color: var(--accent-orange); }
+        .btn-tv.active { background: var(--accent-orange); color: var(--bg-dark); font-weight: 800; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+
+        .brand-badge { background: var(--accent-cyan); color: var(--bg-dark); padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.6rem; margin-top: 4px; display: inline-block; }
+
+        .kpi-section-title { margin-top: 0; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;}
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .kpi-card { background: var(--panel-bg); padding: 8px; border-radius: 6px; border: 1px solid var(--panel-border); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .kpi-card h3 { margin: 0 0 2px 0; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-card .value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
+        .kpi-card .unit { font-size: 0.75rem; }
+        .kpi-card.highlight .value { color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);} 
+        
+        .kpi-dual { display: flex; width: 100%; justify-content: space-around; align-items: center; margin-top: 2px;}
+        .kpi-dual-item { display: flex; flex-direction: column; align-items: center; }
+        .kpi-dual-item span { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 1px;}
+        .kpi-dual-item .sub-value { font-size: 1.2rem; font-weight: 700; }
+        .text-green { color: var(--accent-green); text-shadow: 0 0 8px rgba(74, 222, 128, 0.3); }
+
+        .dashboard-middle { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        
+        .chart-container, .table-container, .gantt-container { background: var(--panel-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--panel-border); margin-bottom: 12px; }
+        .chart-container h3, .header-tabla h2, .gantt-container h3 { margin-top: 0; color: var(--text-main); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
+        
+        .chart-wrapper { position: relative; height: 180px; width: 100%; display: flex; justify-content: center; }
+
+        .bottleneck-panel { background: rgba(0, 18, 51, 0.4); padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 5px; }
+        .bn-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);}
+        .bn-label { color: var(--text-muted); font-weight: 600; }
+        .bn-val { font-weight: 700; color: var(--text-main); background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;}
+        
+        .gantt-container { overflow-x: auto; }
+        .gantt-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .gantt-table th { background: rgba(0,0,0,0.3); color: var(--text-muted); text-align: center; padding: 6px; font-size: 0.7rem; border: 1px solid var(--panel-border); min-width: 70px;}
+        .gantt-table td { padding: 5px; border: 1px solid var(--panel-border); vertical-align: top; background: rgba(0,0,0,0.1); }
+        .gantt-row-title { font-weight: 700; font-size: 0.7rem; color: var(--text-main); background: rgba(0, 85, 255, 0.1) !important; width: 150px; text-transform: uppercase; }
+        
+        .gantt-tag-block { position: relative; background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); padding: 3px; border-radius: 4px; font-family: monospace; font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 3px; border: 1px solid rgba(0, 242, 254, 0.3); text-align: center; }
+        
+        .done { background: rgba(74, 222, 128, 0.15) !important; color: var(--accent-green) !important; border-color: rgba(74, 222, 128, 0.3) !important; cursor: pointer; }
+        
+        .blink-action { animation: blink-active-green 1.5s infinite; border: 2px solid var(--accent-green) !important; cursor: pointer; font-weight: 900;}
+        @keyframes blink-active-green { 0%, 100% { background-color: rgba(74, 222, 128, 0.15); box-shadow: 0 0 3px rgba(74, 222, 128, 0.2); color: var(--accent-green); } 50% { background-color: var(--accent-green); box-shadow: 0 0 12px var(--accent-green); color: var(--bg-dark) !important; } }
+
+        .blink-delayed { animation: blink-red-alert 1.5s infinite; border: 2px solid var(--accent-pink) !important; color: #fff !important; cursor: pointer; font-weight: bold;}
+        .alert-detenida { animation: blink-red-alert 1.5s infinite; border: 2px solid var(--accent-pink) !important; color: #fff !important; cursor: pointer; font-weight: 900;}
+        @keyframes blink-red-alert { 0%, 100% { background-color: rgba(255, 75, 114, 0.15); box-shadow: 0 0 3px rgba(255, 75, 114, 0.2); color: var(--accent-pink) !important;} 50% { background-color: var(--accent-pink); box-shadow: 0 0 12px var(--accent-pink); color: var(--bg-dark) !important;} }
+
+        /* PANEL UNIFICADO DE ALERTAS */
+        #panel-alertas { display: none; flex-direction: column; gap: 8px; margin-top: 15px; }
+        .alert-box { padding: 12px; border-radius: 4px; font-size: 0.85rem; color: #333; display: none; }
+        .alert-box.retraso { background-color: #fff0f4; border: 1px solid #ffcdd2; }
+        .alert-box.hse { background-color: #fff8e1; border: 1px solid #ffecb3; }
+        .alert-box.detenido { background-color: #fce4ec; border: 1px solid #f8bbd0; }
+        .alert-box strong { color: #000; font-weight: 800; }
+        .alert-tags { font-family: monospace; font-size: 0.9rem; display: block; margin-top: 5px; }
+
+        .tooltip-card { visibility: hidden; width: 170px; background-color: var(--bg-dark); color: var(--text-main); text-align: center; border: 1px solid var(--accent-cyan); border-radius: 6px; padding: 8px; position: absolute; z-index: 1000; top: -10px; left: 105%; opacity: 0; transition: opacity 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.8); pointer-events: none; }
+        .gantt-tag-block:hover .tooltip-card, .gantt-tag-block.done:hover .tooltip-card, .tracker-box:hover .tooltip-card { visibility: visible; opacity: 1; }
+        .tooltip-card::after { content: ""; position: absolute; top: 15px; right: 100%; margin-top: -5px; border-width: 5px; border-style: solid; border-color: transparent var(--accent-cyan) transparent transparent; right: auto; }
+        
+        .tracker-box .tooltip-card { top: auto; bottom: 20px; left: 50%; right: auto; transform: translateX(-50%); }
+        .tracker-box .tooltip-card::after { top: 100%; left: 50%; right: auto; margin-left: -5px; border-color: var(--accent-cyan) transparent transparent transparent; }
+
+        .tt-title { display: block; font-size: 0.7rem; color: var(--accent-cyan); font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 3px; margin-bottom: 4px; }
+        .tt-tech { display: block; font-size: 0.75rem; font-weight: bold; color: var(--text-main); margin-bottom: 6px; }
+        .tt-photo { width: 100%; max-height: 100px; object-fit: cover; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2); }
+        .tt-nophoto { display: block; font-size: 0.65rem; color: var(--text-muted); font-style: italic; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 3px; border: 1px dashed rgba(255,255,255,0.1); }
+
+        .historico-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .historico-table th { background: rgba(0, 242, 254, 0.1); color: var(--accent-cyan); padding: 8px; font-size: 0.75rem; border-bottom: 2px solid var(--accent-cyan); text-transform: uppercase;}
+        .historico-table td { padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+        
+        .team-badge { background: rgba(167, 139, 250, 0.2); color: var(--accent-purple); padding: 3px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: bold; }
+        .date-badge { color: var(--text-muted); font-family: monospace; font-size: 0.75rem;}
+        .tag-pill { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 2px 5px; border-radius: 4px; font-size: 0.7rem; margin: 2px; display: inline-block; font-family: monospace; color: var(--accent-cyan);}
+
+        .table-container { grid-column: 1 / -1; overflow-x: auto; margin-bottom: 0; }
+        .header-tabla { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .search-box input { padding: 6px 12px; width: 250px; border: 1px solid var(--panel-border); border-radius: 15px; outline: none; font-size: 0.8rem; background: rgba(0,0,0,0.2); color: white; transition: border-color 0.3s;}
+        .search-box input:focus { border-color: var(--accent-cyan); }
+        
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;}
+        tr:hover { background-color: rgba(255,255,255,0.05); }
+        
+        .ot-number { font-size: 1.2rem; font-weight: 800; font-family: monospace; color: var(--text-main); }
+        .tag-style { background-color: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1.1rem; font-weight: 800; font-family: monospace; color: var(--accent-cyan); display: inline-block; margin-bottom: 4px; border: 1px solid var(--panel-border);}
+        .text-area { color: var(--text-muted); font-size: 0.75rem; }
+        
+        .tracker-wrapper { flex-direction: column; gap: 4px; }
+        .tracker-text { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px;}
+        .tracker-boxes { display: flex; gap: 3px; align-items: center; }
+        
+        .tracker-box { width: 18px; height: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 2px; position: relative; cursor: pointer; transition: all 0.3s;}
+        
+        .avance-badge { background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); border: 1px solid var(--panel-border); padding: 2px 5px; border-radius: 3px; font-size: 0.7rem; font-weight: 800; margin-left: 6px; min-width: 35px; text-align: center; }
+        .avance-badge.detenida { color: var(--accent-pink); background: rgba(255, 75, 114, 0.15); border-color: rgba(255, 75, 114, 0.3); }
+
+        .box-passed { background: var(--accent-green) !important; border-color: var(--accent-green) !important; box-shadow: 0 0 3px rgba(74, 222, 128, 0.4); }
+        .box-active { background-color: var(--accent-orange); border: 2px solid var(--accent-orange) !important; animation: blink-yellow-box 1.5s infinite; }
+        @keyframes blink-yellow-box { 0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent-orange); } 50% { opacity: 0.4; box-shadow: 0 0 2px rgba(245, 158, 11, 0); } }
+
+        .box-detenida { background-color: var(--accent-pink); border: 2px solid var(--accent-pink) !important; animation: blink-red-box 1.5s infinite; }
+        @keyframes blink-red-box { 0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent-pink); } 50% { opacity: 0.4; box-shadow: 0 0 2px rgba(255, 75, 114, 0); } }
+
+        .txt-vacio { color: var(--text-muted); font-style: italic; }
+        .txt-atraso { color: var(--accent-pink); font-size: 0.7rem; font-weight: bold; margin-top: 3px; display: block; }
+        .status-message { text-align: center; padding: 20px; color: var(--text-muted); }
+        .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+        .connection-banner { display:none; margin:0 0 10px; padding:8px 12px; border:1px solid var(--accent-orange); border-radius:6px; color:var(--accent-orange); background:rgba(245,158,11,.08); font-size:.75rem; }
+        .connection-banner.visible { display:block; }
+        button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:2px; }
+        @media (max-width: 760px) {
+            #wrapper { padding: 8px; }
+            header { align-items:flex-start; gap:10px; }
+            .header-controls { width:100%; align-items:stretch; }
+            .btn-group { justify-content:flex-start; }
+            .search-box input { width:min(100%, 280px); }
+            .chart-wrapper { height:220px; }
+        }
+
+        .report-btn { display: inline-flex; align-items: center; justify-content: center; background: rgba(138, 180, 248, 0.1); color: var(--text-main); border: 1px solid var(--panel-border); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer; text-decoration: none; width: 65px; margin-bottom: 4px; }
+        .report-btn:hover { background: rgba(0, 242, 254, 0.2); color: var(--accent-cyan); border-color: var(--accent-cyan); }
+        .report-ph { border-left: 3px solid var(--accent-cyan); }
+        .report-conf { border-left: 3px solid var(--accent-purple); }
+        .report-container { display: flex; flex-direction: column; align-items: flex-start;}
+
+        /* ARQUITECTURA MULTI-PLANTA, HISTORIAL Y ESTRATEGIA DE MANTENIMIENTO */
+        .plant-context { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 10px; padding:7px 10px; background:rgba(0,0,0,.2); border:1px solid var(--panel-border); border-radius:7px; }
+        .context-chip { display:inline-flex; align-items:center; gap:4px; min-height:22px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:var(--text-muted); font-size:.68rem; }
+        .context-chip strong { color:var(--text-main); }
+        .context-chip.strategy { border-color:rgba(74,222,128,.35); color:var(--accent-green); }
+        .strategy-shell { margin:15px 0; padding:12px; border:1px solid var(--panel-border); border-radius:10px; background:linear-gradient(135deg, rgba(0,85,255,.12), rgba(0,18,51,.52)); }
+        .strategy-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+        .strategy-header h2 { margin:0; font-size:1rem; text-transform:uppercase; }
+        .strategy-header p { margin:3px 0 0; color:var(--text-muted); font-size:.75rem; max-width:850px; }
+        .strategy-actions { display:flex; gap:6px; flex-wrap:wrap; }
+        .strategy-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px; }
+        .strategy-card { min-height:83px; padding:10px; border:1px solid rgba(255,255,255,.1); border-radius:8px; background:rgba(0,0,0,.2); }
+        .strategy-card .label { color:var(--text-muted); font-size:.65rem; text-transform:uppercase; letter-spacing:.4px; }
+        .strategy-card .metric { margin-top:4px; font-size:1.35rem; font-weight:800; }
+        .strategy-card .detail { margin-top:4px; color:var(--text-muted); font-size:.65rem; line-height:1.35; }
+        .strategy-body { display:grid; grid-template-columns:minmax(280px,1.3fr) minmax(260px,1fr); gap:10px; margin-top:10px; }
+        .strategy-panel { padding:10px; border:1px solid rgba(255,255,255,.1); border-radius:8px; background:rgba(0,0,0,.18); }
+        .strategy-panel h3 { margin:0 0 8px; font-size:.78rem; text-transform:uppercase; color:var(--text-main); }
+        .history-chart-wrapper { position:relative; height:210px; }
+        .maturity-track { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin:10px 0; }
+        .maturity-step { padding:7px 4px; text-align:center; font-size:.62rem; color:var(--text-muted); border:1px solid rgba(255,255,255,.1); border-radius:5px; background:rgba(255,255,255,.03); }
+        .maturity-step.active { color:var(--bg-dark); font-weight:900; background:var(--accent-green); border-color:var(--accent-green); }
+        .readiness-bar { height:9px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.08); }
+        .readiness-bar > span { display:block; width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-orange),var(--accent-green)); transition:width .35s ease; }
+        .strategy-next { margin-top:8px; padding:8px; border-left:3px solid var(--accent-cyan); background:rgba(0,242,254,.06); color:var(--text-muted); font-size:.72rem; line-height:1.45; }
+        .data-contract { margin:8px 0 0; padding-left:17px; color:var(--text-muted); font-size:.68rem; line-height:1.55; }
+        dialog { width:min(680px,calc(100vw - 24px)); max-height:90vh; overflow:auto; color:var(--text-main); background:#001b47; border:1px solid var(--accent-cyan); border-radius:10px; box-shadow:0 25px 80px rgba(0,0,0,.75); }
+        dialog::backdrop { background:rgba(0,8,24,.78); backdrop-filter:blur(3px); }
+        .dialog-header { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; }
+        .dialog-header h2 { margin:0; font-size:1rem; }
+        .dialog-header p { margin:3px 0 0; color:var(--text-muted); font-size:.72rem; }
+        .dialog-close { border:0; background:transparent; color:var(--text-main); font-size:1.2rem; cursor:pointer; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+        .form-field { display:flex; flex-direction:column; gap:4px; }
+        .form-field.full { grid-column:1/-1; }
+        .form-field label { color:var(--text-muted); font-size:.68rem; text-transform:uppercase; }
+        .form-field input, .form-field select, .form-field textarea { box-sizing:border-box; width:100%; padding:8px 9px; border:1px solid var(--panel-border); border-radius:6px; background:rgba(0,0,0,.3); color:var(--text-main); font:inherit; }
+        .form-field textarea { min-height:72px; resize:vertical; }
+        .form-help { color:var(--text-muted); font-size:.62rem; line-height:1.4; }
+        .dialog-actions { display:flex; justify-content:flex-end; gap:7px; flex-wrap:wrap; margin-top:14px; }
+        .empty-plant { padding:20px; text-align:center; color:var(--text-muted); border:1px dashed var(--panel-border); border-radius:8px; }
+        @media (max-width:760px) {
+            .strategy-body { grid-template-columns:1fr; }
+            .form-grid { grid-template-columns:1fr; }
+            .form-field.full { grid-column:auto; }
+            .maturity-track { grid-template-columns:repeat(2,1fr); }
+        }
+
+        /* CSS IMPRESIÓN CORREGIDO - CONTRASTE MEJORADO */
+        @media print {
+            @page { size: landscape; margin: 10mm; }
+            html, body { background-color: white !important; color: black !important; overflow: visible !important; height: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #wrapper { overflow: visible !important; height: auto !important; padding: 0 !important; }
+            .top-fixed-section { position: relative !important; box-shadow: none !important; border-bottom: 2px solid #000; margin-bottom: 20px; }
+            .header-controls, .search-box, .btn-group, .sync-dot, dialog, .strategy-actions { display: none !important; }
+            .kpi-card, .chart-container, .table-container, .gantt-container { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; page-break-inside: avoid; }
+            * { text-shadow: none !important; animation: none !important; }
+            h1, h2, h3, th, td, span, div { color: black !important; border-color: #ccc !important; }
+            
+            /* Mejoras de contraste en tags y fondos */
+            .tag-style { background-color: #e2e8f0 !important; color: #0f172a !important; border: 2px solid #64748b !important; font-weight: 900 !important; }
+            .gantt-tag-block { background-color: #f1f5f9 !important; color: #000 !important; border: 1px solid #94a3b8 !important; font-weight: bold !important; }
+            
+            .brand-badge { background: #000 !important; color: #fff !important; }
+            .alert-box { border: 1px solid #000 !important; color: #000 !important; }
+            .alert-tags { color: #d32f2f !important; }
+            canvas { filter: invert(1); max-width: 100% !important; }
+            ::-webkit-scrollbar { display: none; }
+        }
+
+        /* PANTALLA DE LOGIN RESTRINGIDO */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(10px); }
+        .login-box { background: rgba(0, 18, 51, 0.9); padding: 40px; border-radius: 12px; border: 1px solid var(--accent-cyan); box-shadow: 0 10px 40px rgba(0, 242, 254, 0.2); text-align: center; width: 90%; max-width: 350px; }
+        .login-box h2 { margin-top: 0; color: var(--text-main); letter-spacing: 1px; }
+        .login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px; }
+        .login-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--panel-border); border-radius: 6px; background: rgba(0,0,0,0.5); color: white; text-align: center; font-size: 1.2rem; letter-spacing: 3px; outline: none; box-sizing: border-box; text-transform: uppercase; }
+        .login-input:focus { border-color: var(--accent-cyan); box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); }
+        .login-btn { width: 100%; padding: 12px; background: var(--accent-cyan); color: var(--bg-dark); border: none; border-radius: 6px; font-weight: 900; font-size: 1rem; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .login-btn:hover { box-shadow: 0 0 15px var(--accent-cyan); background: #fff; }
+        .login-error { color: var(--accent-pink); font-size: 0.8rem; margin-top: 15px; display: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<!-- PANTALLA DE SEGURIDAD (CANDADO) -->
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>🔒 Acceso Restringido</h2>
+        <p>Sistema Corporativo Leanvalv OMS<br><small>Ingresa tu clave de acceso autorizada.</small></p>
+        <input type="password" id="login-pin" class="login-input" placeholder="CÓDIGO" autocomplete="off" onkeypress="if(event.key === 'Enter') verificarAcceso()">
+        <button class="login-btn" onclick="verificarAcceso()">Desbloquear</button>
+        <div id="login-error" class="login-error">Código incorrecto o licencia inactiva.</div>
+    </div>
+</div>
+
+<div id="wrapper">
+    <div class="top-fixed-section">
+        <header>
+            <div>
+                <h1 id="plant-title">Centro de Mando Operacional</h1>
+                <p id="plant-subtitle">Gestión de Taller y Control de Activos</p>
+                <div class="brand-badge" id="plant-brand">POWERED BY LEANVALV</div>
+                <div class="brand-badge" id="user-role-badge" style="margin-left: 5px; background: var(--accent-purple);">👑 ADMIN</div>
+            </div>
+            <div class="header-controls">
+                <div class="btn-group">
+                    <select id="filtroServicio" class="btn-refresh" style="background: rgba(0,0,0,0.5); outline: none; padding: 2px 6px;" onchange="cambiarProyecto()" aria-label="Seleccionar planta">
+                        <option value="NVA_ALDEA">Cargando plantas...</option>
+                    </select>
+                    <!-- Agregamos IDs a los botones para poder ocultarlos a los clientes -->
+                    <button id="btn-nueva-planta" type="button" class="btn-refresh" onclick="abrirDialogoPlanta(false)">➕ Nueva planta</button>
+                    <button id="btn-plantilla" type="button" class="btn-refresh" onclick="abrirDialogoPlanta(true)" style="border-color:var(--accent-purple);color:var(--accent-purple);">🧩 Plantilla</button>
+                    <button id="btn-registrar-cond" type="button" class="btn-refresh" onclick="abrirDialogoCondicion()" style="border-color:var(--accent-orange);color:var(--accent-orange);">📡 Registrar condición</button>
+                    
+                    <button type="button" class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+                    <button type="button" class="btn-tv" onclick="toggleModoTV()" id="btn-tv" aria-pressed="false">📺 Modo TV: OFF</button>
+                    <button type="button" class="btn-fullscreen" onclick="toggleFullScreen()" id="btn-fs">🔲 Pantalla Completa</button>
+                    <button id="btn-forzar-sync" type="button" class="btn-refresh" onclick="forzarActualizacionYLimpiar()" style="border-color: var(--accent-green); color: var(--accent-green);">🔄 Forzar Actualización</button>
+                    <button type="button" class="btn-print" onclick="cerrarSesion()" style="border-color: var(--accent-pink); color: var(--accent-pink);">🚪 Salir</button>
+                </div>
+                <div class="timestamp" id="txt-timestamp">
+                    <span class="sync-dot"></span> Cargando interfaz...
+                </div>
+            </div>
+        </header>
+        <div id="connection-banner" class="connection-banner" role="status" aria-live="polite"></div>
+        <div class="plant-context" id="plant-context" aria-live="polite">
+            <span class="context-chip">🏭 <strong id="ctx-plant">Planta</strong></span>
+            <span class="context-chip">🏢 Cliente: <strong id="ctx-client">Leanvalv</strong></span>
+            <span class="context-chip">📍 <strong id="ctx-location">Sin ubicación</strong></span>
+            <span class="context-chip">🧩 Plantilla: <strong id="ctx-template">Base</strong></span>
+            <span class="context-chip strategy">🎯 <strong id="ctx-strategy">Reactivo controlado</strong></span>
+        </div>
+
+        <div class="kpi-section-title">⚡ Gestión Operacional</div>
+        <div class="kpi-grid">
+            <div class="kpi-card highlight">
+                <h3>Avance Operacional</h3>
+                <div class="value" id="kpi-avance">0<span class="unit">%</span></div>
+            </div>
+            <div class="kpi-card">
+                <h3 title="Basado en programación de Desmontaje/Montaje planificado vs completado">Cumplimiento Programa</h3>
+                <div class="value" id="kpi-cumplimiento">0<span class="unit">%</span></div>
+            </div>
+            <div class="kpi-card">
+                <h3 title="Personal con registro HOY en base de datos">Fuerza Laboral Real (Hoy)</h3>
+                <div class="value" id="kpi-rrhh" style="color: var(--accent-green);">0</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Producción Taller</h3>
+                <div class="kpi-dual">
+                    <div class="kpi-dual-item">
+                        <span>Total VVs</span>
+                        <div class="sub-value" id="kpi-total">0</div>
+                    </div>
+                    <div class="kpi-dual-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px;">
+                        <span title="Válvulas en Mantención">Hoy (Mant.)</span>
+                        <div class="sub-value text-green" id="kpi-prod-hoy">+0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="kpi-section-title">⚠️ Prevención de Riesgos y Calidad (QA/QC)</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3 title="Calculado en base a equipos intervenidos fisicamente HOY">Seguridad HSE</h3>
+                <div class="value" id="kpi-hse">100<span class="unit">%</span></div>
+            </div>
+            <div class="kpi-card">
+                <h3>Tasa de Rechazo (QC)</h3>
+                <div class="kpi-dual">
+                    <div class="kpi-dual-item">
+                        <span title="Sin Informes">Doc Faltante</span>
+                        <div class="sub-value" id="kpi-qaqc" style="font-size: 1.1rem;">0</div>
+                    </div>
+                    <div class="kpi-dual-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px;">
+                       <span>Retrabajos</span>
+                      <div class="sub-value" id="kpi-retrabajo" style="font-size: 1.1rem; color: var(--accent-orange);">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <h3>Equipos Detenidos</h3>
+                <div class="value" id="kpi-detenidos">0</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Alertas Atraso</h3>
+                <div class="value" id="kpi-atrasados">0</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="strategy-shell" aria-labelledby="strategy-title">
+        <div class="strategy-header">
+            <div>
+                <h2 id="strategy-title">🧠 Base de mantenimiento estratégico por planta</h2>
+                <p id="strategy-summary">El sistema inicia un historial independiente por planta y evalúa la calidad de datos antes de recomendar mantenimiento preventivo, basado en condición o predictivo.</p>
+            </div>
+            <div class="strategy-actions">
+                <button type="button" class="btn-refresh" onclick="exportarHistorialPlanta()">⬇️ Exportar historial</button>
+                <button type="button" class="btn-refresh" onclick="mostrarDiagnosticoEstrategico()" style="border-color:var(--accent-green);color:var(--accent-green);">🎯 Diagnóstico</button>
+            </div>
+        </div>
+        <div class="strategy-grid">
+            <article class="strategy-card"><div class="label">Días con historial</div><div class="metric" id="strategy-history-days">0</div><div class="detail">Snapshots diarios separados por planta.</div></article>
+            <article class="strategy-card"><div class="label">Eventos de activos</div><div class="metric" id="strategy-events">0</div><div class="detail">Cambios de estado detectados por TAG.</div></article>
+            <article class="strategy-card"><div class="label">Calidad de datos</div><div class="metric" id="strategy-quality">0%</div><div class="detail">Completitud del maestro y ejecución.</div></article>
+            <article class="strategy-card"><div class="label">Preparación predictiva</div><div class="metric" id="strategy-readiness">0%</div><div class="detail" id="strategy-readiness-detail">Primero se consolida el dato confiable.</div></article>
+        </div>
+        <div class="strategy-body">
+            <div class="strategy-panel">
+                <h3>Tendencia histórica de gestión</h3>
+                <div class="history-chart-wrapper"><canvas id="graficoHistorial"></canvas></div>
+            </div>
+            <div class="strategy-panel">
+                <h3>Ruta de madurez recomendada</h3>
+                <div class="maturity-track" id="maturity-track">
+                    <div class="maturity-step" data-level="0">1. Reactivo controlado</div>
+                    <div class="maturity-step" data-level="1">2. Preventivo</div>
+                    <div class="maturity-step" data-level="2">3. Basado en condición</div>
+                    <div class="maturity-step" data-level="3">4. Predictivo</div>
+                </div>
+                <div class="readiness-bar" aria-label="Preparación predictiva"><span id="readiness-bar-fill"></span></div>
+                <div class="strategy-next" id="strategy-next-action">Primera acción: definir maestro de activos, criticidad y taxonomía de fallas.</div>
+                <ul class="data-contract">
+                    <li>Un TAG único por activo y por planta.</li>
+                    <li>OT, modo de falla, causa, acción y tiempo detenido.</li>
+                    <li>Criticidad operacional y consecuencia HSE/producción.</li>
+                    <li>Lecturas de condición con fecha, unidad y método.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <div class="gantt-container" style="margin-top: 15px;">
+        <h3>Tarjetas de Control Diario (Programación)</h3>
+        <table class="gantt-table">
+            <thead>
+                <tr id="gantt-header">
+                    <th>ETAPA / PROGRAMA</th>
+                    <td class="status-message">Cargando calendario operativo...</td>
+                </tr>
+            </thead>
+            <tbody id="gantt-body">
+            </tbody>
+        </table>
+        
+        <!-- PANEL DE ALERTAS UNIFICADO -->
+        <div id="panel-alertas">
+            <div id="gantt-alert" class="alert-box retraso">
+                ⚠️ <strong>ALERTA DE RETRASO:</strong> Existen válvulas cuyas fechas planificadas se cumplieron y aún no registran término.<br>
+                <span id="gantt-alert-text" class="alert-tags" style="color: #c62828;"></span>
+            </div>
+            <div id="detenidos-alert" class="alert-box detenido">
+                🛑 <strong>EQUIPOS DETENIDOS (TSV):</strong> Se detectaron equipos con procesos paralizados.<br>
+                <span id="detenidos-alert-text" class="alert-tags" style="color: #ad1457;"></span>
+            </div>
+            <div id="hse-alert" class="alert-box hse">
+                🦺 <strong>DESVIACIÓN HSE EN TERRENO:</strong> Se detectaron equipos sin el 100% del Check List Diario obligatorio.<br>
+                <span id="hse-alert-text" class="alert-tags" style="color: #e65100;"></span>
+            </div>
+            <!-- BOTÓN DE CORREO ACTUALIZADO -->
+            <div style="text-align: right; margin-top: 5px;">
+                <button id="btn-enviar-reporte" class="btn-refresh" onclick="enviarReporteEmail()" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">📧 Enviar Reporte Dinámico</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-middle">
+        <div class="chart-container">
+            <h3>Distribución en Taller y Planta</h3>
+            <div class="chart-wrapper">
+                <canvas id="graficoAvance"></canvas>
+            </div>
+        </div>
+        <div class="chart-container">
+            <h3 title="Acumulado de Válvulas (VV)">Curva S: Plan vs Real (Acumulado)</h3>
+           <div class="chart-wrapper">
+                <canvas id="graficoPlanVsReal"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>🔴 Cuellos de Botella</h3>
+            <div class="bottleneck-panel" id="bottleneck-panel"><div class="bn-row"><span class="bn-label">Cargando etapas de la planta…</span><span class="bn-val">0</span></div></div>
+        </div>
+
+        <div class="chart-container">
+            <h3>Pirámide de Incidentes (HSE)</h3>
+            <div class="chart-wrapper">
+                <canvas id="graficoIncidentes"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="kpi-section-title">📊 Sistema de Control Diario por Equipos de Trabajo</div>
+    <div class="table-container" style="margin-bottom: 15px;">
+        <table class="historico-table">
+            <thead>
+                <tr>
+                    <th>Fecha Operativa</th>
+                    <th>Técnico Responsable / Equipo</th>
+                    <th>Rol / Etapa Ejecutada</th>
+                    <th>Válvulas Intervenidas (TAGs)</th>
+                    <th style="text-align:center;">Total Actividades</th>
+                </tr>
+            </thead>
+            <tbody id="body-historico-equipos">
+                <tr><td colspan="5" class="status-message">Generando historial de equipos...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-container">
+        <div class="header-tabla">
+            <h2>Línea de Mantenimiento de Válvulas</h2>
+            <div class="search-box" style="display: flex; gap: 5px; align-items: center;">
+                <label for="buscadorTabla" class="sr-only">Buscar en la tabla operacional</label>
+                <input type="search" id="buscadorTabla" oninput="filtrarTabla()" placeholder="Buscar OT, TAG, Estado..." autocomplete="off">
+                <button type="button" class="btn-refresh" onclick="abrirEscanerQR()" title="Escanear Código QR" style="padding: 6px 10px;">📷 QR</button>
+            </div>
+        </div>
+        <table id="tablaOperacional">
+            <thead>
+                <tr>
+                    <th>TAG</th>
+                    <th>N° Orden / Sistema</th>
+                    <th>Tipo</th>
+                    <th>Estado Operativo</th>
+                    <th>Informes PDF</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+                <tr><td colspan="5" class="status-message">Estableciendo conexión segura con la base de datos...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</div> 
+
+<dialog id="plant-dialog">
+    <form id="plant-form" method="dialog">
+        <div class="dialog-header">
+            <div><h2 id="plant-dialog-title">Nueva planta y plantilla</h2><p>Cada planta conserva configuración, caché, historial y estrategia independientes.</p></div>
+            <button type="button" class="dialog-close" onclick="cerrarDialogo('plant-dialog')" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="form-grid">
+            <div class="form-field"><label for="plant-code">Código único</label><input id="plant-code" name="code" maxlength="30" required pattern="[A-Za-z0-9_-]+"><span class="form-help">Ejemplo: CELULOSA_VALDIVIA. No usar espacios.</span></div>
+            <div class="form-field"><label for="plant-api-code">Código en backend</label><input id="plant-api-code" name="apiCode" maxlength="50" required><span class="form-help">Valor enviado como parámetro “proyecto”.</span></div>
+            <div class="form-field"><label for="plant-name">Nombre de planta</label><input id="plant-name" name="name" maxlength="80" required></div>
+            <div class="form-field"><label for="plant-client">Cliente / compañía</label><input id="plant-client" name="client" maxlength="80" required></div>
+            <div class="form-field"><label for="plant-location">Ubicación</label><input id="plant-location" name="location" maxlength="100" placeholder="Comuna, región o área"></div>
+            <div class="form-field"><label for="plant-template">Tipo de plantilla</label><select id="plant-template" name="templateKey" onchange="aplicarPresetPlantillaAlFormulario()"><option value="TURNAROUND">Parada de planta / válvulas</option><option value="COLBUN_SM">Colbún Santa María · 6 etapas</option><option value="CONTINUOUS">Mantenimiento continuo</option><option value="RELIABILITY">Confiabilidad y condición</option><option value="CUSTOM">Flujo personalizado</option></select></div>
+            <div class="form-field"><label for="plant-accent">Color identificador</label><input id="plant-accent" name="accent" type="color" value="#00f2fe"></div>
+            <div class="form-field"><label for="plant-version">Versión plantilla</label><input id="plant-version" name="templateVersion" value="1.0" maxlength="15"></div>
+            <div class="form-field full"><label for="plant-stages">Etapas operacionales configurables</label><textarea id="plant-stages" name="stages" required oninput="actualizarConteoEtapas()"></textarea><span class="form-help">Defina entre 2 y 12 etapas, separadas por punto y coma. La secuencia controla avance, trackers, gráficos, cuellos de botella y Gantt. <strong id="plant-stage-count">0 etapas</strong></span></div>
+            <div class="form-field full"><label for="plant-objective">Objetivo estratégico de la planta</label><textarea id="plant-objective" name="objective" placeholder="Ej.: reducir detenciones no planificadas y aumentar disponibilidad de válvulas críticas."></textarea></div>
+        </div>
+        <div class="dialog-actions">
+            <button type="button" class="btn-print" onclick="cerrarDialogo('plant-dialog')">Cancelar</button>
+            <button type="submit" class="btn-refresh" style="border-color:var(--accent-green);color:var(--accent-green);">Guardar planta y plantilla</button>
+        </div>
+    </form>
+</dialog>
+
+<dialog id="condition-dialog">
+    <form id="condition-form" method="dialog">
+        <div class="dialog-header">
+            <div><h2>Registrar lectura de condición</h2><p>Comienza a construir series temporales para mantenimiento basado en condición. En producción, estas lecturas deben enviarse al backend.</p></div>
+            <button type="button" class="dialog-close" onclick="cerrarDialogo('condition-dialog')" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="form-grid">
+            <div class="form-field"><label for="condition-tag">TAG del activo</label><input id="condition-tag" name="tag" list="asset-tags" required><datalist id="asset-tags"></datalist></div>
+            <div class="form-field"><label for="condition-date">Fecha y hora</label><input id="condition-date" name="timestamp" type="datetime-local" required></div>
+            <div class="form-field"><label for="condition-pressure">Presión</label><input id="condition-pressure" name="pressure" type="number" step="any" placeholder="bar"></div>
+            <div class="form-field"><label for="condition-temperature">Temperatura</label><input id="condition-temperature" name="temperature" type="number" step="any" placeholder="°C"></div>
+            <div class="form-field"><label for="condition-vibration">Vibración</label><input id="condition-vibration" name="vibration" type="number" step="any" placeholder="mm/s"></div>
+            <div class="form-field"><label for="condition-cycles">Ciclos acumulados</label><input id="condition-cycles" name="cycles" type="number" min="0" step="1"></div>
+            <div class="form-field"><label for="condition-leakage">Fuga estimada</label><input id="condition-leakage" name="leakage" type="number" step="any" placeholder="unidad definida por planta"></div>
+            <div class="form-field"><label for="condition-inspector">Inspector / técnico</label><input id="condition-inspector" name="inspector" maxlength="80"></div>
+            <div class="form-field full"><label for="condition-note">Observación</label><textarea id="condition-note" name="note" placeholder="Ruido, corrosión, fuga visible, condición del actuador, etc."></textarea></div>
+        </div>
+        <div class="dialog-actions"><button type="button" class="btn-print" onclick="cerrarDialogo('condition-dialog')">Cancelar</button><button type="submit" class="btn-refresh">Guardar lectura local</button></div>
+    </form>
+</dialog>
+
+<dialog id="diagnostic-dialog">
+    <div class="dialog-header"><div><h2>Diagnóstico de estrategia por planta</h2><p id="diagnostic-subtitle"></p></div><button type="button" class="dialog-close" onclick="cerrarDialogo('diagnostic-dialog')" aria-label="Cerrar">✕</button></div>
+    <div id="diagnostic-content"></div>
+    <div class="dialog-actions"><button type="button" class="btn-refresh" onclick="cerrarDialogo('diagnostic-dialog')">Cerrar</button></div>
+</dialog>
+
+<dialog id="qr-dialog" style="max-width: 400px; text-align: center;">
+    <div class="dialog-header">
+        <div><h2>Escanear Válvula</h2><p>Apunta la cámara al código QR (TAG)</p></div>
+        <button type="button" class="dialog-close" onclick="cerrarEscanerQR()" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="qr-reader" style="width: 100%; margin-top: 15px; border-radius: 8px; overflow: hidden; background: #fff;"></div>
+    <div class="dialog-actions">
+        <button type="button" class="btn-print" onclick="cerrarEscanerQR()">Cancelar</button>
+    </div>
+</dialog>
+
+<script>
+        "use strict";
+
+        // --- SISTEMA DE SEGURIDAD Y ROLES ---
+        const CODIGO_ADMIN = "LEANVALV26"; 
+        const CODIGO_CLIENTE = "CLIENTE26";
+
+        function verificarAcceso() {
+            const input = document.getElementById('login-pin').value.toUpperCase();
+            const btn = document.querySelector('.login-btn');
+            
+            if (input === CODIGO_ADMIN || input === CODIGO_CLIENTE) {
+                btn.innerHTML = "Verificando...";
+                setTimeout(() => {
+                    localStorage.setItem('leanvalv_acceso', 'concedido');
+                    localStorage.setItem('leanvalv_rol', input === CODIGO_ADMIN ? 'admin' : 'cliente');
+                    document.getElementById('login-overlay').style.display = 'none';
+                    aplicarPermisosRol();
+                    obtenerDatosEnVivo();
+                }, 800);
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+                document.getElementById('login-pin').value = '';
+            }
+        }
+
+        function aplicarPermisosRol() {
+            const rol = localStorage.getItem('leanvalv_rol');
+            const esCliente = (rol === 'cliente');
+            
+            // Elementos a ocultar para clientes
+            const elementosBloqueados = [
+                'btn-nueva-planta', 
+                'btn-plantilla', 
+                'btn-registrar-cond', 
+                'btn-forzar-sync',
+                'btn-enviar-reporte'
+            ];
+
+            elementosBloqueados.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = esCliente ? 'none' : 'inline-block';
+            });
+
+            // Etiqueta visual de rol
+            const badge = document.getElementById('user-role-badge');
+            if (badge) {
+                if (esCliente) {
+                    badge.innerHTML = '👤 VISTA CLIENTE';
+                    badge.style.background = 'var(--accent-orange)';
+                    badge.style.color = '#000';
+                } else {
+                    badge.innerHTML = '👑 ADMIN';
+                    badge.style.background = 'var(--accent-purple)';
+                    badge.style.color = '#fff';
+                }
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('leanvalv_acceso');
+            localStorage.removeItem('leanvalv_rol');
+            location.reload();
+        }
+
+        const CONFIG = Object.freeze({
+            apiUrl: "https://script.google.com/macros/s/AKfycbzskG4Ex5frZXYJ2kGGyt7qkhHj0-SDvg0KCGJXsfSqEY_rZ9cJxPWmEVy2J_pdbrQg/exec?token=Leanvalv_Admin_Master_2026",
+            cachePrefix: "leanvalv_cache_v3_",
+            plantsKey: "leanvalv_plants_v1",
+            activePlantKey: "leanvalv_active_plant_v1",
+            historyPrefix: "leanvalv_history_v1_",
+            eventsPrefix: "leanvalv_events_v1_",
+            assetStatePrefix: "leanvalv_asset_state_v1_",
+            conditionPrefix: "leanvalv_condition_v1_",
+            cacheMaxAgeMs: 15 * 60 * 1000,
+            refreshIntervalMs: 60 * 1000,
+            connectionTimeoutMs: 12 * 1000,
+            maxCalendarDays: 90,
+            minStages: 2,
+            maxStages: 12,
+            maxHistoryDays: 730,
+            maxAssetEvents: 2500,
+            maxConditionReadings: 5000
+        });
+
+        const TEMPLATE_PRESETS = Object.freeze({
+            TURNAROUND: { label: "Parada de planta / válvulas", stages: ["Desmontaje/Traslado", "Stock Taller", "Mantención", "Instrumentación", "P. Hidrostática", "Stock Terminadas", "Certificación QA/QC", "Montaje/Entrega"] },
+            COLBUN_SM: { label: "Colbún Santa María · 6 etapas", stages: ["Desmontaje/Traslado", "Stock en Taller", "En Mantención", "Stock CK Terminada", "Certificada", "Montaje"] },
+            CONTINUOUS: { label: "Mantenimiento continuo", stages: ["Aviso/Diagnóstico", "Planificación", "Preparación", "Intervención", "Pruebas", "Liberación QA/QC", "Disponible", "Cierre técnico"] },
+            RELIABILITY: { label: "Confiabilidad y condición", stages: ["Detección", "Evaluación de riesgo", "Plan de acción", "Intervención", "Verificación funcional", "Validación técnica", "Retorno a servicio", "Seguimiento"] },
+            CUSTOM: { label: "Flujo personalizado", stages: ["Recepción", "Ejecución", "Cierre"] }
+        });
+
+        const DEFAULT_PLANTS = Object.freeze({
+            ALL: { id:"ALL", apiCode:"ALL", name:"Vista Corporativa", client:"Leanvalv", location:"Todas las plantas", templateKey:"TURNAROUND", templateVersion:"1.0", accent:"#00f2fe", stages:TEMPLATE_PRESETS.TURNAROUND.stages, objective:"Consolidar desempeño, riesgos y capacidad operacional entre plantas.", protected:true },
+            NVA_ALDEA: { id:"NVA_ALDEA", apiCode:"NVA_ALDEA", name:"Planta Nueva Aldea", client:"Arauco", location:"Nueva Aldea, Ñuble", templateKey:"TURNAROUND", templateVersion:"1.0", accent:"#00f2fe", stages:TEMPLATE_PRESETS.TURNAROUND.stages, objective:"Asegurar cumplimiento de parada, trazabilidad de válvulas y reducción de tiempos sin valor.", protected:true },
+            CMPC_LAJA: { id:"CMPC_LAJA", apiCode:"CMPC_LAJA", name:"Planta CMPC Laja", client:"CMPC", location:"Laja, Biobío", templateKey:"CONTINUOUS", templateVersion:"1.0", accent:"#4ade80", stages:TEMPLATE_PRESETS.CONTINUOUS.stages, objective:"Controlar mantenimiento continuo y priorizar activos por riesgo operacional.", protected:true },
+            ARAUCO: { id:"ARAUCO", apiCode:"ARAUCO", name:"Planta Arauco MAPA", client:"Arauco", location:"Arauco, Biobío", templateKey:"RELIABILITY", templateVersion:"1.0", accent:"#a78bfa", stages:TEMPLATE_PRESETS.RELIABILITY.stages, objective:"Construir una estrategia de confiabilidad basada en criticidad, condición y modos de falla.", protected:true },
+            COLBUN_SANTA_MARIA: { id:"COLBUN_SANTA_MARIA", apiCode:"COLBUN_SANTA_MARIA", name:"Colbún Santa María", client:"Colbún", location:"Central Santa María", templateKey:"COLBUN_SM", templateVersion:"1.0", accent:"#38bdf8", stages:TEMPLATE_PRESETS.COLBUN_SM.stages, objective:"Controlar un flujo de seis etapas con trazabilidad por TAG, cumplimiento y base histórica para confiabilidad.", protected:true }
+        });
+
+        const APP_STATE = {
+            charts: { taller: null, tsv: null, curvaS: null, incidentes: null, historial: null },
+            plants: {},
+            currentPlantId: "NVA_ALDEA",
+            lastDataset: [],
+            lastMetrics: null,
+            syncing: false,
+            tvActive: false,
+            tvInterval: null,
+            connectionTimeout: null,
+            jsonpScript: null
+        };
+
+        const colors = { cyan: '#00f2fe', pink: '#ff4b72', blue: '#8ab4f8', purple: '#a78bfa', orange: '#f59e0b', green: '#4ade80', bg: 'rgba(255,255,255,0.05)' };
+
+        const $ = (id) => document.getElementById(id);
+        const asText = (value, fallback = "") => value == null ? fallback : String(value);
+        const escapeHtml = (value) => asText(value).replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+        const safeHttpUrl = (value) => { try { const u = new URL(asText(value)); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
+        const normalizeText = (value) => asText(value).trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normalizeForMatch = (value) => normalizeText(value).replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+        const containsWholePhrase = (value, phrase) => {
+            const haystack = normalizeForMatch(value);
+            const needle = normalizeForMatch(phrase);
+            return Boolean(haystack && needle && (` ${haystack} `).includes(` ${needle} `));
+        };
+
+        const selectedProject = () => $('filtroServicio')?.value || APP_STATE.currentPlantId || 'ALL';
+        const clone = value => JSON.parse(JSON.stringify(value));
+        const storageKey = (prefix, plantId = selectedProject()) => `${prefix}${plantId}`;
+        const readJSON = (key, fallback) => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } };
+        const writeJSON = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (error) { console.warn('No se pudo guardar en almacenamiento local:', error); return false; } };
+        const getActivePlant = () => APP_STATE.plants[selectedProject()] || APP_STATE.plants.NVA_ALDEA || clone(DEFAULT_PLANTS.NVA_ALDEA);
+        const currentCacheKey = () => storageKey(CONFIG.cachePrefix);
+        const historyKey = () => storageKey(CONFIG.historyPrefix);
+        const eventsKey = () => storageKey(CONFIG.eventsPrefix);
+        const assetStateKey = () => storageKey(CONFIG.assetStatePrefix);
+        const conditionKey = () => storageKey(CONFIG.conditionPrefix);
+        const isoLocalDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0));
+        const hasValue = value => value !== null && value !== undefined && String(value).trim() !== '';
+        const normalizedStages = plant => {
+            const stages = Array.isArray(plant?.stages) ? plant.stages.map(value => asText(value).trim()).filter(Boolean) : [];
+            if (stages.length >= CONFIG.minStages && stages.length <= CONFIG.maxStages) return stages;
+            const preset = TEMPLATE_PRESETS[plant?.templateKey] || TEMPLATE_PRESETS.TURNAROUND;
+            return clone(preset.stages);
+        };
+
+        const STAGE_ROLE_TERMS = Object.freeze({
+            DISASSEMBLY: ['desmontaje','traslado','terreno','retiro','deteccion','diagnostico','aviso'],
+            FINISHED_STOCK: ['stock ck terminada','ck terminada','stock terminadas','stock valvulas terminadas','terminada taller','lista para certificar'],
+            CERTIFICATION: ['certificada','certificacion','qa/qc','qaqc','liberacion calidad','control calidad'],
+            TESTING: ['hidrostatica','hidroestatica','prueba hidrostatica','p. hidrostatica','ph','pruebas','verificacion funcional'],
+            INSTRUMENTATION: ['instrumentacion','modulacion','calibracion','actuador'],
+            MAINTENANCE: ['en mantencion','mantencion','mantenimiento','intervencion','reparacion','overhaul'],
+            WORKSHOP_STOCK: ['stock en taller','stock taller','en cola','cola','espera taller','recepcion taller','almacen'],
+            ASSEMBLY: ['montaje','montada','torqueada','entrega','retorno a servicio','cierre tecnico','seguimiento']
+        });
+
+        function inferirRolEtapa(value) {
+            const normalized = normalizeText(value);
+            if (!normalized) return 'CUSTOM';
+            for (const [role, terms] of Object.entries(STAGE_ROLE_TERMS)) {
+                if (terms.some(term => containsWholePhrase(normalized, term))) return role;
+            }
+            return 'CUSTOM';
+        }
+
+        function obtenerMetaEtapas(plant = getActivePlant()) {
+            const labels = normalizedStages(plant);
+            const roles = labels.map(inferirRolEtapa);
+            const indexOfRole = role => roles.indexOf(role);
+            return {
+                labels,
+                roles,
+                count: labels.length,
+                firstIndex: 0,
+                lastIndex: labels.length - 1,
+                maintenanceIndex: indexOfRole('MAINTENANCE') >= 0 ? indexOfRole('MAINTENANCE') : Math.min(2, labels.length - 1),
+                certificationIndex: indexOfRole('CERTIFICATION'),
+                testingIndex: indexOfRole('TESTING'),
+                instrumentationIndex: indexOfRole('INSTRUMENTATION')
+            };
+        }
+
+        function tecnicoParaEtapa(servicio, stageLabel, index) {
+            const custom = servicio[`tecEtapa${index + 1}`] || servicio[`tecnicoEtapa${index + 1}`];
+            if (hasValue(custom)) return custom;
+            switch (inferirRolEtapa(stageLabel)) {
+                case 'DISASSEMBLY': return servicio.tecDesmontaje || 'Técnico no asignado';
+                case 'WORKSHOP_STOCK':
+                case 'FINISHED_STOCK': return 'Gestión de Almacén';
+                case 'MAINTENANCE': return servicio.tecMantencion || 'Técnico no asignado';
+                case 'INSTRUMENTATION': return servicio.tecModulacion || 'Técnico no asignado';
+                case 'TESTING': return servicio.tecHidrostatica || 'Técnico no asignado';
+                case 'CERTIFICATION': return servicio.tecCertificacion || servicio.tecQAQC || 'Control QA/QC';
+                case 'ASSEMBLY': return servicio.tecMontaje || 'Técnico no asignado';
+                default: return servicio.tecnicoActual || servicio.responsable || 'Responsable no asignado';
+            }
+        }
+
+        function cargarRegistroPlantas() {
+            const custom = readJSON(CONFIG.plantsKey, {});
+            const merged = {};
+            Object.entries(DEFAULT_PLANTS).forEach(([id, plant]) => merged[id] = clone(plant));
+            Object.entries(custom || {}).forEach(([id, plant]) => merged[id] = { ...merged[id], ...plant, id, stages: normalizedStages(plant) });
+            APP_STATE.plants = merged;
+            const savedPlant = localStorage.getItem(CONFIG.activePlantKey);
+            APP_STATE.currentPlantId = merged[savedPlant] ? savedPlant : 'NVA_ALDEA';
+        }
+
+        function guardarRegistroPlantas() {
+            const custom = {};
+            Object.entries(APP_STATE.plants).forEach(([id, plant]) => {
+                if (!DEFAULT_PLANTS[id] || JSON.stringify(plant) !== JSON.stringify(DEFAULT_PLANTS[id])) custom[id] = plant;
+            });
+            writeJSON(CONFIG.plantsKey, custom);
+        }
+
+        function renderizarSelectorPlantas() {
+            const select = $('filtroServicio');
+            if (!select) return;
+            const plants = Object.values(APP_STATE.plants).sort((a,b) => {
+                if (a.id === 'ALL') return -1;
+                if (b.id === 'ALL') return 1;
+                return a.name.localeCompare(b.name, 'es');
+            });
+            select.innerHTML = plants.map(plant => `<option value="${escapeHtml(plant.id)}">${plant.id === 'ALL' ? '🌐' : '🏭'} ${escapeHtml(plant.name)}</option>`).join('');
+            select.value = APP_STATE.currentPlantId;
+        }
+
+        function aplicarIdentidadPlanta() {
+            const plant = getActivePlant();
+            APP_STATE.currentPlantId = plant.id;
+            document.documentElement.style.setProperty('--accent-cyan', plant.accent || '#00f2fe');
+            $('plant-title').textContent = plant.id === 'ALL' ? 'Centro de Mando Corporativo' : `Centro de Mando · ${plant.name}`;
+            $('plant-subtitle').textContent = plant.objective || 'Gestión de mantenimiento y control de activos';
+            $('plant-brand').textContent = `LEANVALV · ${plant.templateVersion || '1.0'}`;
+            $('ctx-plant').textContent = plant.name;
+            $('ctx-client').textContent = plant.client || 'No definido';
+            $('ctx-location').textContent = plant.location || 'Sin ubicación';
+            $('ctx-template').textContent = `${TEMPLATE_PRESETS[plant.templateKey]?.label || plant.templateKey} v${plant.templateVersion || '1.0'}`;
+            document.title = `Leanvalv OMS | ${plant.name}`;
+            actualizarAnaliticaEstrategica();
+        }
+
+        function limpiarVistaParaCambioPlanta() {
+            $('data-table-body').innerHTML = '<tr><td colspan="5" class="status-message">Cargando plantilla y datos de la planta seleccionada...</td></tr>';
+            $('body-historico-equipos').innerHTML = '<tr><td colspan="5" class="status-message">Sin historial operativo cargado.</td></tr>';
+            $('gantt-header').innerHTML = '<th>ETAPA / PROGRAMA</th><td class="status-message">Cargando calendario...</td>';
+            $('gantt-body').innerHTML = '';
+            APP_STATE.lastDataset = [];
+        }
+
+        function cargarCachePlantaActiva() {
+            const cached = readJSON(currentCacheKey(), null);
+            if (cached?.savedAt && Date.now() - cached.savedAt <= CONFIG.cacheMaxAgeMs && cached.payload) {
+                try { procesarDatosWeb(cached.payload, true); return true; } catch (error) { console.warn('Caché inválida de planta:', error); }
+            }
+            if (cached) localStorage.removeItem(currentCacheKey());
+            return false;
+        }
+
+        function resolverEtapa(servicio, estadoNormalizado, stageLabels = normalizedStages(getActivePlant())) {
+            const labels = stageLabels;
+            const count = labels.length;
+            const explicitIndex = Number(servicio.etapaIndex ?? servicio.stageIndex);
+            if (Number.isInteger(explicitIndex) && explicitIndex >= 0 && explicitIndex < count) return explicitIndex;
+
+            const explicitStage = normalizeText(servicio.etapaActual || servicio.nombreEtapa || servicio.stageName || servicio.etapa || '');
+            if (explicitStage) {
+                const direct = labels.findIndex(label => {
+                    const normalizedLabel = normalizeText(label);
+                    return explicitStage === normalizedLabel || containsWholePhrase(explicitStage, normalizedLabel) || containsWholePhrase(normalizedLabel, explicitStage);
+                });
+                if (direct >= 0) return direct;
+            }
+
+            if (!estadoNormalizado || estadoNormalizado.includes('sin iniciar')) return -1;
+
+            for (let index = count - 1; index >= 0; index--) {
+                const normalizedLabel = normalizeText(labels[index]);
+                if (normalizedLabel && (containsWholePhrase(estadoNormalizado, normalizedLabel) || containsWholePhrase(normalizedLabel, estadoNormalizado))) return index;
+            }
+
+            let stateRole = inferirRolEtapa(estadoNormalizado);
+            if (normalizeText(estadoNormalizado) === 'terminada') stateRole = 'ASSEMBLY';
+            const roles = labels.map(inferirRolEtapa);
+            const roleIndex = roles.indexOf(stateRole);
+            if (stateRole !== 'CUSTOM' && roleIndex >= 0) return roleIndex;
+
+            const findRole = role => roles.indexOf(role);
+            if (hasValue(servicio.tecMontaje) || hasValue(servicio.fechaMontajeReal)) {
+                const index = findRole('ASSEMBLY'); if (index >= 0) return index;
+            }
+            if (hasValue(servicio.tecHidrostatica)) {
+                const index = findRole('TESTING'); if (index >= 0) return index;
+            }
+            if (hasValue(servicio.tecModulacion)) {
+                const index = findRole('INSTRUMENTATION'); if (index >= 0) return index;
+            }
+            if (hasValue(servicio.tecMantencion)) {
+                const index = findRole('MAINTENANCE'); if (index >= 0) return index;
+            }
+            return -1;
+        }
+
+        function evaluarCalidadDatos(datos) {
+            if (!Array.isArray(datos) || datos.length === 0) return { quality:0, criticalityCoverage:0, conditionCoverage:0, failureSignals:0 };
+            const required = ['tag','id','tipo','area','estado','fechaDesmontajePlan','fechaMontajePlan'];
+            const conditionFields = ['presion','pressure','temperatura','temperature','vibracion','vibration','ciclos','cycles','fuga','leakage','conditionScore','healthIndex'];
+            const criticalityFields = ['criticidad','criticality','riesgo','riskClass'];
+            let filled = 0, criticality = 0, condition = 0, failures = 0;
+            datos.forEach(asset => {
+                required.forEach(field => { if (hasValue(asset[field])) filled++; });
+                if (criticalityFields.some(field => hasValue(asset[field]))) criticality++;
+                if (conditionFields.some(field => hasValue(asset[field]))) condition++;
+                const signal = normalizeText(`${asset.estado || ''} ${asset.tiempoSinValor || ''} ${asset.modoFalla || ''} ${asset.causaFalla || ''}`);
+                if (['detenida','falla','rechazo','retrabajo','fuga'].some(word => signal.includes(word))) failures++;
+            });
+            return {
+                quality: Math.round((filled / (datos.length * required.length)) * 100),
+                criticalityCoverage: Math.round((criticality / datos.length) * 100),
+                conditionCoverage: Math.round((condition / datos.length) * 100),
+                failureSignals: failures
+            };
+        }
+
+        function registrarHistoricoPlanta(metrics, datos) {
+            if (selectedProject() === 'ALL') { actualizarAnaliticaEstrategica(); return; }
+            const assessment = evaluarCalidadDatos(datos);
+            const snapshots = readJSON(historyKey(), []);
+            const today = isoLocalDate();
+            const snapshot = {
+                date: today,
+                capturedAt: new Date().toISOString(),
+                plantId: selectedProject(),
+                metrics: { ...metrics, ...assessment },
+                stages: Array.isArray(metrics.stages) ? metrics.stages.slice(0, CONFIG.maxStages) : [],
+                stageLabels: normalizedStages(getActivePlant())
+            };
+            const existing = snapshots.findIndex(item => item.date === today);
+            if (existing >= 0) snapshots[existing] = snapshot; else snapshots.push(snapshot);
+            snapshots.sort((a,b) => a.date.localeCompare(b.date));
+            writeJSON(historyKey(), snapshots.slice(-CONFIG.maxHistoryDays));
+
+            const previousState = readJSON(assetStateKey(), {});
+            const currentState = {};
+            const events = readJSON(eventsKey(), []);
+            datos.forEach(asset => {
+                const tag = asText(asset.tag).trim();
+                if (!tag) return;
+                const state = {
+                    estado: asText(asset.estado),
+                    etapa: Number.isInteger(asset.etapaNum) ? asset.etapaNum : resolverEtapa(asset, normalizeText(asset.estado), normalizedStages(getActivePlant())),
+                    detenido: Boolean(asset.estadoDetenido || normalizeText(asset.estado).includes('detenida')),
+                    atraso: Boolean(asset.atrasado),
+                    causa: asText(asset.tiempoSinValor),
+                    ot: asText(asset.id)
+                };
+                currentState[tag] = state;
+                const prior = previousState[tag];
+                if (!prior || JSON.stringify(prior) !== JSON.stringify(state)) {
+                    events.push({ id:`${selectedProject()}-${tag}-${Date.now()}-${events.length}`, timestamp:new Date().toISOString(), plantId:selectedProject(), tag, type:prior ? 'STATE_CHANGE' : 'ASSET_DISCOVERED', from:prior || null, to:state });
+                }
+            });
+            writeJSON(assetStateKey(), currentState);
+            writeJSON(eventsKey(), events.slice(-CONFIG.maxAssetEvents));
+            APP_STATE.lastMetrics = snapshot.metrics;
+            actualizarAnaliticaEstrategica();
+        }
+
+        function datosEstrategicosActivos() {
+            if (selectedProject() !== 'ALL') return { snapshots:readJSON(historyKey(), []), events:readJSON(eventsKey(), []), readings:readJSON(conditionKey(), []) };
+            const plantIds = Object.keys(APP_STATE.plants).filter(id => id !== 'ALL');
+            const allSnapshots = plantIds.flatMap(id => readJSON(storageKey(CONFIG.historyPrefix, id), []));
+            const allEvents = plantIds.flatMap(id => readJSON(storageKey(CONFIG.eventsPrefix, id), []));
+            const allReadings = plantIds.flatMap(id => readJSON(storageKey(CONFIG.conditionPrefix, id), []));
+            const byDate = new Map();
+            allSnapshots.forEach(snapshot => {
+                const bucket = byDate.get(snapshot.date) || [];
+                bucket.push(snapshot);
+                byDate.set(snapshot.date, bucket);
+            });
+            const snapshots = [...byDate.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([date, items]) => {
+                const sum = key => items.reduce((acc,item) => acc + Number(item.metrics?.[key] || 0),0);
+                const average = key => Math.round(sum(key) / Math.max(items.length,1));
+                return { date, capturedAt:items.at(-1)?.capturedAt, plantId:'ALL', metrics:{
+                    totalAssets:sum('totalAssets'), totalOTs:sum('totalOTs'), advance:average('advance'), compliance:average('compliance'), hse:average('hse'), delayed:sum('delayed'), stopped:sum('stopped'), rework:sum('rework'), missingDocuments:sum('missingDocuments'), workforce:sum('workforce'), quality:average('quality'), criticalityCoverage:average('criticalityCoverage'), conditionCoverage:average('conditionCoverage'), failureSignals:sum('failureSignals')
+                }};
+            });
+            return { snapshots, events:allEvents, readings:allReadings };
+        }
+
+        function calcularMadurezEstrategica() {
+            const { snapshots, events, readings } = datosEstrategicosActivos();
+            const latest = snapshots.at(-1)?.metrics || APP_STATE.lastMetrics || { quality:0, criticalityCoverage:0, conditionCoverage:0, failureSignals:0 };
+            const days = new Set(snapshots.map(item => item.date)).size;
+            const readingTags = new Set(readings.map(item => item.tag)).size;
+            const totalAssets = latest.totalAssets || latest.totalOTs || APP_STATE.lastDataset.length || 0;
+            const manualConditionCoverage = totalAssets ? Math.round((readingTags / totalAssets) * 100) : 0;
+            const conditionCoverage = Math.max(latest.conditionCoverage || 0, manualConditionCoverage);
+            let score = 0;
+            score += Math.min(days / 90, 1) * 25;
+            score += clamp(latest.quality,0,100) * .25;
+            score += clamp(latest.criticalityCoverage,0,100) * .15;
+            score += clamp(conditionCoverage,0,100) * .20;
+            score += Math.min((latest.failureSignals || 0) / 20, 1) * 8;
+            score += Math.min(events.length / 250, 1) * 7;
+            score = Math.round(score);
+            let level = 0;
+            if (days >= 7 && latest.quality >= 55) level = 1;
+            if (days >= 30 && latest.quality >= 70 && conditionCoverage >= 30 && latest.criticalityCoverage >= 50) level = 2;
+            if (days >= 90 && latest.quality >= 85 && conditionCoverage >= 70 && latest.criticalityCoverage >= 85 && (latest.failureSignals || 0) >= 10) level = 3;
+            const names = ['Reactivo controlado','Preventivo','Basado en condición','Predictivo'];
+            const nextActions = [
+                'Definir el maestro de activos por planta, TAG único, criticidad y taxonomía de modos de falla. Sin esto, cualquier modelo predictivo sería poco confiable.',
+                'Crear planes preventivos por criticidad y modo de falla, registrar horas/ciclos y asegurar cierre técnico estructurado en cada OT.',
+                'Estandarizar límites de alarma, rutas de inspección y frecuencia de lecturas. Correlacionar condición con fallas y tiempos detenidos.',
+                'Validar modelos por familia de activos, medir falsos positivos y convertir predicciones en decisiones planificadas con trazabilidad económica.'
+            ];
+            return { snapshots, events, readings, latest, days, totalAssets, conditionCoverage, score, level, name:names[level], nextAction:nextActions[level] };
+        }
+
+        function actualizarAnaliticaEstrategica() {
+            if (!$('strategy-history-days')) return;
+            const maturity = calcularMadurezEstrategica();
+            $('strategy-history-days').textContent = maturity.days;
+            $('strategy-events').textContent = maturity.events.length;
+            $('strategy-quality').textContent = `${Math.round(maturity.latest.quality || 0)}%`;
+            $('strategy-readiness').textContent = `${maturity.score}%`;
+            $('strategy-readiness-detail').textContent = `${maturity.readings.length} lecturas · ${maturity.conditionCoverage}% cobertura de condición`;
+            $('readiness-bar-fill').style.width = `${maturity.score}%`;
+            $('strategy-next-action').textContent = maturity.nextAction;
+            $('ctx-strategy').textContent = maturity.name;
+            document.querySelectorAll('.maturity-step').forEach(step => step.classList.toggle('active', Number(step.dataset.level) === maturity.level));
+            dibujarGraficoHistorial(maturity.snapshots);
+        }
+
+        function dibujarGraficoHistorial(snapshots) {
+            const canvas = $('graficoHistorial');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const recent = snapshots.slice(-30);
+            const labels = recent.map(item => item.date.slice(5));
+            const datasets = [
+                { label:'Avance', data:recent.map(item => item.metrics.advance || 0), borderColor:colors.cyan, tension:.25, pointRadius:2 },
+                { label:'Cumplimiento', data:recent.map(item => item.metrics.compliance || 0), borderColor:colors.green, tension:.25, pointRadius:2 },
+                { label:'HSE', data:recent.map(item => item.metrics.hse || 0), borderColor:colors.orange, tension:.25, pointRadius:2 }
+            ];
+            if (APP_STATE.charts.historial) {
+                APP_STATE.charts.historial.data.labels = labels;
+                APP_STATE.charts.historial.data.datasets.forEach((dataset,index) => dataset.data = datasets[index].data);
+                APP_STATE.charts.historial.update();
+                return;
+            }
+            APP_STATE.charts.historial = new Chart(canvas.getContext('2d'), { type:'line', data:{ labels, datasets }, options:{ maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, ticks:{ color:'#8ab4f8' }, grid:{ color:colors.bg } }, x:{ ticks:{ color:'#8ab4f8' }, grid:{ display:false } } }, plugins:{ legend:{ labels:{ color:'#8ab4f8', boxWidth:10 } } } } });
+        }
+
+        function abrirDialogoPlanta(editing) {
+            const dialog = $('plant-dialog');
+            const form = $('plant-form');
+            const plant = editing ? getActivePlant() : { id:'', apiCode:'', name:'', client:'', location:'', templateKey:getActivePlant().templateKey || 'TURNAROUND', templateVersion:'1.0', accent:getActivePlant().accent || '#00f2fe', stages:normalizedStages(getActivePlant()), objective:'' };
+            $('plant-dialog-title').textContent = editing ? `Editar plantilla · ${plant.name}` : 'Nueva planta y plantilla';
+            form.dataset.editing = editing ? 'true' : 'false';
+            $('plant-code').value = plant.id || '';
+            $('plant-code').readOnly = Boolean(editing);
+            $('plant-api-code').value = plant.apiCode || plant.id || '';
+            $('plant-name').value = plant.name || '';
+            $('plant-client').value = plant.client || '';
+            $('plant-location').value = plant.location || '';
+            $('plant-template').value = plant.templateKey || 'TURNAROUND';
+            $('plant-accent').value = plant.accent || '#00f2fe';
+            $('plant-version').value = plant.templateVersion || '1.0';
+            $('plant-stages').value = normalizedStages(plant).join('; ');
+            actualizarConteoEtapas();
+            $('plant-objective').value = plant.objective || '';
+            dialog.showModal();
+        }
+
+        function aplicarPresetPlantillaAlFormulario() {
+            const preset = TEMPLATE_PRESETS[$('plant-template').value] || TEMPLATE_PRESETS.TURNAROUND;
+            $('plant-stages').value = preset.stages.join('; ');
+            actualizarConteoEtapas();
+        }
+
+        function actualizarConteoEtapas() {
+            const count = asText($('plant-stages')?.value).split(';').map(value => value.trim()).filter(Boolean).length;
+            const target = $('plant-stage-count');
+            if (!target) return;
+            target.textContent = `${count} ${count === 1 ? 'etapa' : 'etapas'}`;
+            target.style.color = count >= CONFIG.minStages && count <= CONFIG.maxStages ? 'var(--accent-green)' : 'var(--accent-pink)';
+        }
+
+        function guardarPlantaDesdeFormulario(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const formData = new FormData(form);
+            const id = asText(formData.get('code')).trim().toUpperCase().replace(/\s+/g,'_');
+            const stages = asText(formData.get('stages')).split(';').map(value => value.trim()).filter(Boolean);
+            if (!/^[A-Z0-9_-]+$/.test(id)) { alert('El código solo puede contener letras, números, guion y guion bajo.'); return; }
+            if (stages.length < CONFIG.minStages || stages.length > CONFIG.maxStages) { alert(`La plantilla debe contener entre ${CONFIG.minStages} y ${CONFIG.maxStages} etapas separadas por punto y coma.`); return; }
+            if (form.dataset.editing !== 'true' && APP_STATE.plants[id]) { alert('Ya existe una planta con ese código.'); return; }
+            APP_STATE.plants[id] = {
+                ...(APP_STATE.plants[id] || {}),
+                id,
+                apiCode:asText(formData.get('apiCode')).trim() || id,
+                name:asText(formData.get('name')).trim(),
+                client:asText(formData.get('client')).trim(),
+                location:asText(formData.get('location')).trim(),
+                templateKey:asText(formData.get('templateKey')),
+                templateVersion:asText(formData.get('templateVersion')).trim() || '1.0',
+                accent:asText(formData.get('accent')) || '#00f2fe',
+                stages,
+                objective:asText(formData.get('objective')).trim(),
+                protected:Boolean(DEFAULT_PLANTS[id]?.protected)
+            };
+            guardarRegistroPlantas();
+            APP_STATE.currentPlantId = id;
+            localStorage.setItem(CONFIG.activePlantKey, id);
+            renderizarSelectorPlantas();
+            $('filtroServicio').value = id;
+            aplicarIdentidadPlanta();
+            cerrarDialogo('plant-dialog');
+            cambiarProyecto();
+        }
+
+        function abrirDialogoCondicion() {
+            if (selectedProject() === 'ALL') { alert('Seleccione una planta específica para registrar condición.'); return; }
+            const datalist = $('asset-tags');
+            datalist.innerHTML = [...new Set(APP_STATE.lastDataset.map(item => asText(item.tag)).filter(Boolean))].sort().map(tag => `<option value="${escapeHtml(tag)}"></option>`).join('');
+            const now = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+            $('condition-date').value = now;
+            $('condition-dialog').showModal();
+        }
+
+        function guardarLecturaCondicion(event) {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const reading = {
+                id:`COND-${selectedProject()}-${Date.now()}`,
+                plantId:selectedProject(),
+                tag:asText(formData.get('tag')).trim(),
+                timestamp:asText(formData.get('timestamp')),
+                pressure:hasValue(formData.get('pressure')) ? Number(formData.get('pressure')) : null,
+                temperature:hasValue(formData.get('temperature')) ? Number(formData.get('temperature')) : null,
+                vibration:hasValue(formData.get('vibration')) ? Number(formData.get('vibration')) : null,
+                cycles:hasValue(formData.get('cycles')) ? Number(formData.get('cycles')) : null,
+                leakage:hasValue(formData.get('leakage')) ? Number(formData.get('leakage')) : null,
+                inspector:asText(formData.get('inspector')).trim(),
+                note:asText(formData.get('note')).trim(),
+                source:'LOCAL_HTML_PROTOTYPE',
+                createdAt:new Date().toISOString()
+            };
+            const readings = readJSON(conditionKey(), []);
+            readings.push(reading);
+            writeJSON(conditionKey(), readings.slice(-CONFIG.maxConditionReadings));
+            event.currentTarget.reset();
+            cerrarDialogo('condition-dialog');
+            actualizarAnaliticaEstrategica();
+            setConnectionMessage('Lectura guardada localmente. Para operación multiusuario debe persistirse en PostgreSQL o en la API corporativa.', 'warning');
+        }
+
+        function cerrarDialogo(id) {
+            const dialog = $(id);
+            if (dialog?.open) dialog.close();
+        }
+
+        function exportarHistorialPlanta() {
+            const plant = getActivePlant();
+            const payload = { exportedAt:new Date().toISOString(), plant, snapshots:readJSON(historyKey(), []), assetEvents:readJSON(eventsKey(), []), conditionReadings:readJSON(conditionKey(), []) };
+            const blob = new Blob([JSON.stringify(payload,null,2)], { type:'application/json;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `leanvalv_${plant.id}_historial_${isoLocalDate()}.json`;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+
+        function mostrarDiagnosticoEstrategico() {
+            const plant = getActivePlant();
+            const m = calcularMadurezEstrategica();
+            $('diagnostic-subtitle').textContent = `${plant.name} · Nivel actual: ${m.name} · Preparación ${m.score}%`;
+            $('diagnostic-content').innerHTML = `
+                <div class="strategy-grid">
+                    <article class="strategy-card"><div class="label">Historial</div><div class="metric">${m.days} días</div><div class="detail">Meta para modelado inicial: ≥90 días y ciclos operacionales representativos.</div></article>
+                    <article class="strategy-card"><div class="label">Criticidad cubierta</div><div class="metric">${Math.round(m.latest.criticalityCoverage || 0)}%</div><div class="detail">Debe considerar seguridad, ambiente, producción y costo.</div></article>
+                    <article class="strategy-card"><div class="label">Condición cubierta</div><div class="metric">${m.conditionCoverage}%</div><div class="detail">Lecturas asociadas a TAG, fecha, unidad y método.</div></article>
+                    <article class="strategy-card"><div class="label">Señales de falla</div><div class="metric">${m.latest.failureSignals || 0}</div><div class="detail">Se requieren fallas etiquetadas por modo y causa.</div></article>
+                </div>
+                <div class="strategy-next"><strong>Recomendación ejecutiva:</strong> ${escapeHtml(m.nextAction)}</div>
+                <h3 style="margin-top:14px;">Principio de diseño Leanvalv</h3>
+                <p style="color:var(--text-muted);font-size:.75rem;line-height:1.55;">No usar un único modelo para todas las válvulas. La estrategia debe segmentar por planta, familia, servicio, criticidad, mecanismo de degradación y contexto operacional. Primero se gobierna el dato; después se automatiza la decisión.</p>`;
+            $('diagnostic-dialog').showModal();
+        }
+
+        function setConnectionMessage(message = '', type = 'warning') {
+            const banner = $('connection-banner');
+            if (!banner) return;
+            banner.textContent = message;
+            banner.classList.toggle('visible', Boolean(message));
+            banner.style.borderColor = type === 'error' ? 'var(--accent-pink)' : 'var(--accent-orange)';
+            banner.style.color = type === 'error' ? 'var(--accent-pink)' : 'var(--accent-orange)';
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            cargarRegistroPlantas();
+            renderizarSelectorPlantas();
+            $('filtroServicio').value = APP_STATE.currentPlantId;
+            aplicarIdentidadPlanta();
+            $('plant-form').addEventListener('submit', guardarPlantaDesdeFormulario);
+            $('condition-form').addEventListener('submit', guardarLecturaCondicion);
+            cargarCachePlantaActiva();
+            actualizarAnaliticaEstrategica();
+            
+            // VERIFICACIÓN DE SEGURIDAD ANTES DE CARGAR DATOS
+            if (localStorage.getItem('leanvalv_acceso') === 'concedido') {
+                document.getElementById('login-overlay').style.display = 'none';
+                aplicarPermisosRol();
+                obtenerDatosEnVivo();
+            }
+        });
+
+        window.addEventListener('beforeunload', limpiarRecursos);
+        document.addEventListener('fullscreenchange', actualizarBotonFullscreen);
+
+        function limpiarRecursos() {
+            clearInterval(APP_STATE.tvInterval);
+            clearTimeout(APP_STATE.connectionTimeout);
+            if (APP_STATE.jsonpScript?.parentNode) APP_STATE.jsonpScript.remove();
+        }
+
+        function cancelarSincronizacionActual() {
+            clearTimeout(APP_STATE.connectionTimeout);
+            if (APP_STATE.jsonpScript?.parentNode) APP_STATE.jsonpScript.remove();
+            APP_STATE.jsonpScript = null;
+            APP_STATE.syncing = false;
+        }
+
+        function forzarActualizacionYLimpiar() {
+            cancelarSincronizacionActual();
+            localStorage.removeItem(currentCacheKey());
+            $('gantt-body').innerHTML = '<tr><td colspan="99" class="status-message" style="color:var(--accent-orange);">🧹 Borrando caché y descargando datos frescos...</td></tr>';
+            obtenerDatosEnVivo();
+        }
+
+        function cambiarProyecto() {
+            cancelarSincronizacionActual();
+            APP_STATE.currentPlantId = selectedProject();
+            localStorage.setItem(CONFIG.activePlantKey, APP_STATE.currentPlantId);
+            aplicarIdentidadPlanta();
+            limpiarVistaParaCambioPlanta();
+            cargarCachePlantaActiva();
+            obtenerDatosEnVivo();
+        }
+
+        function toggleModoTV() {
+            APP_STATE.tvActive = !APP_STATE.tvActive; const btn = $('btn-tv');
+            clearInterval(APP_STATE.tvInterval);
+            btn.textContent = APP_STATE.tvActive ? '📺 Modo TV: ON' : '📺 Modo TV: OFF';
+            btn.classList.toggle('active', APP_STATE.tvActive);
+            btn.setAttribute('aria-pressed', String(APP_STATE.tvActive));
+            if (APP_STATE.tvActive) APP_STATE.tvInterval = setInterval(obtenerDatosEnVivo, CONFIG.refreshIntervalMs);
+        }
+
+        async function toggleFullScreen() {
+            try {
+                if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+                else await document.exitFullscreen();
+            } catch (error) {
+                setConnectionMessage('El navegador bloqueó el modo pantalla completa.', 'error');
+            }
+        }
+
+        function actualizarBotonFullscreen() {
+            const btn = $('btn-fs');
+            if (btn) btn.textContent = document.fullscreenElement ? '✖️ Salir' : '🔲 Pantalla Completa';
+        }
+
+        function deTextoAFecha(texto) {
+            if(!texto || texto === "Sin fecha" || texto.trim() === "") return null;
+            const partes = texto.split("/");
+            if(partes.length !== 3) return null;
+            return new Date(partes[2], partes[1] - 1, partes[0]);
+        }
+
+        function actualizarTextoFecha(isCached) {
+            const ahoraHora = new Date();
+            let f = ("0" + ahoraHora.getDate()).slice(-2) + "/" + ("0" + (ahoraHora.getMonth() + 1)).slice(-2) + "/" + ahoraHora.getFullYear();
+            let h = ("0" + ahoraHora.getHours()).slice(-2) + ":" + ("0" + ahoraHora.getMinutes()).slice(-2) + ":" + ("0" + ahoraHora.getSeconds()).slice(-2);
+            let origen = isCached ? "Caché local" : "Online y verificado";
+            let colorPunto = isCached ? "var(--accent-orange)" : "var(--accent-green)";
+           $('txt-timestamp').innerHTML = `<span class="sync-dot" style="background:${colorPunto};"></span> ${escapeHtml(getActivePlant().name)} · ${origen}: ${f} ${h}`;
+        }
+
+        async function obtenerDatosEnVivo() {
+            if (APP_STATE.syncing) return;
+            const statusIndicator = $('txt-timestamp');
+            statusIndicator.innerHTML = '<span class="sync-dot loading"></span> Sincronizando en vivo...';
+            APP_STATE.syncing = true;
+            setConnectionMessage('');
+
+            let ipCliente = 'Desconocida';
+            let geoCliente = 'No autorizada';
+
+            try {
+                const ipController = new AbortController();
+                const ipTimeout = setTimeout(() => ipController.abort(), 2500);
+                try {
+                    const response = await fetch('https://api.ipify.org?format=json', { signal: ipController.signal, cache: 'no-store' });
+                    if (response.ok) ipCliente = asText((await response.json()).ip, 'Desconocida');
+                } finally { clearTimeout(ipTimeout); }
+            } catch { /* La IP es opcional. */ }
+
+            if (navigator.geolocation) {
+                try {
+                    geoCliente = await new Promise(resolve => navigator.geolocation.getCurrentPosition(
+                        pos => resolve(`${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`),
+                        () => resolve('No autorizada'),
+                        { timeout: 3000, maximumAge: 300000, enableHighAccuracy: false }
+                    ));
+                } catch { geoCliente = 'No autorizada'; }
+            }
+
+            llamarAppsScript(ipCliente, geoCliente, statusIndicator);
+        }
+
+        function llamarAppsScript(ip, geo, statusIndicator) {
+            const requestedPlantId = selectedProject();
+            const requestedPlant = APP_STATE.plants[requestedPlantId] || getActivePlant();
+            const requestedCacheKey = storageKey(CONFIG.cachePrefix, requestedPlantId);
+            const callbackName = `jsonpCallback_${crypto?.randomUUID?.().replace(/-/g, '') || Date.now()}`;
+            const script = document.createElement('script');
+            APP_STATE.jsonpScript = script;
+
+            clearTimeout(APP_STATE.connectionTimeout);
+            APP_STATE.connectionTimeout = setTimeout(() => {
+                if (APP_STATE.syncing && selectedProject() === requestedPlantId) {
+                    statusIndicator.innerHTML = '<span class="sync-dot" style="background:var(--accent-pink);"></span> Tiempo de espera agotado';
+                    setConnectionMessage('No fue posible verificar la conexión. Se mantienen los últimos datos disponibles.', 'error');
+                    APP_STATE.syncing = false;
+                    cleanupJsonp();
+                }
+            }, CONFIG.connectionTimeoutMs);
+
+            const cleanupJsonp = () => {
+                try { delete window[callbackName]; } catch { window[callbackName] = undefined; }
+                if (script.parentNode) script.remove();
+                APP_STATE.jsonpScript = null;
+            };
+
+            window[callbackName] = data => {
+                clearTimeout(APP_STATE.connectionTimeout);
+                APP_STATE.syncing = false;
+                cleanupJsonp();
+                if (selectedProject() !== requestedPlantId) return;
+                try {
+                    procesarDatosWeb(data, false);
+                    localStorage.setItem(requestedCacheKey, JSON.stringify({ savedAt: Date.now(), payload: data }));
+                    actualizarTextoFecha(false);
+                } catch (error) {
+                    console.error('Error procesando datos:', error);
+                    statusIndicator.innerHTML = '<span class="sync-dot" style="background:var(--accent-pink);"></span> Error al procesar datos';
+                    setConnectionMessage('La respuesta del servidor no tiene el formato esperado.', 'error');
+                }
+            };
+
+            const url = new URL(CONFIG.apiUrl);
+            url.searchParams.set('callback', callbackName);
+            url.searchParams.set('ip', ip);
+            url.searchParams.set('geo', geo);
+            url.searchParams.set('proyecto', requestedPlant.apiCode || requestedPlant.id);
+            url.searchParams.set('plantilla', requestedPlant.templateKey || 'TURNAROUND');
+            url.searchParams.set('plantillaVersion', requestedPlant.templateVersion || '1.0');
+            url.searchParams.set('etapas', JSON.stringify(normalizedStages(requestedPlant)));
+            url.searchParams.set('t', String(Date.now()));
+            script.src = url.toString();
+            script.async = true;
+            script.onerror = () => {
+                clearTimeout(APP_STATE.connectionTimeout);
+                APP_STATE.syncing = false;
+                cleanupJsonp();
+                if (selectedProject() !== requestedPlantId) return;
+                statusIndicator.innerHTML = '<span class="sync-dot" style="background:var(--accent-pink);"></span> Fuera de línea';
+                setConnectionMessage('Servidor no disponible. Se muestran datos en caché, si existen.', 'error');
+            };
+            document.body.appendChild(script);
+        }
+
+        function procesarDatosWeb(resultado, isCached) {
+            const tableBody = document.getElementById("data-table-body");
+            if (resultado.status !== "success") throw new Error("Status no fue success");
+            if(isCached) actualizarTextoFecha(true);
+
+            const datos = Array.isArray(resultado.data) ? resultado.data : [];
+            const plant = getActivePlant();
+            const stageMeta = obtenerMetaEtapas(plant);
+            const stageLabels = stageMeta.labels;
+            const lastStageIndex = stageMeta.lastIndex;
+            const stageCount = stageMeta.count;
+            APP_STATE.lastDataset = datos;
+            tableBody.innerHTML = ""; const fragmentoTabla = document.createDocumentFragment();
+
+            let totalOTs = 0, otsAtrasadas = 0;
+            let tsvConteo = {}; let cEtapas = Array(stageCount).fill(0); let equiposDetenidos = 0; let sumaAvanceTotal = 0;
+            let reqHseCount = 0, okHseCount = 0; let docFaltantes = 0, retrabajos = 0; let dataEquipos = {};
+            let totalActividadesPlanificadas = 0, totalActividadesCompletadas = 0;
+
+            let tagsDesviacionHSE_Detallado = [];
+            let tagsDetenidosDetallado = [];
+            let retrasosDesmontaje = []; 
+            let retrasosMontaje = [];
+
+            let ahora = new Date(); ahora.setHours(0,0,0,0);
+            let hoyStr = ("0" + ahora.getDate()).slice(-2) + "/" + ("0" + (ahora.getMonth() + 1)).slice(-2) + "/" + ahora.getFullYear();
+
+            let minDate = null, maxDate = null;
+            datos.forEach(servicio => {
+                let fechasStr = [servicio.fechaDesmontajePlan, servicio.fechaMontajePlan];
+                fechasStr.forEach(fStr => {
+                    let d = deTextoAFecha(fStr);
+                    if (d) { if (!minDate || d < minDate) minDate = new Date(d); if (!maxDate || d > maxDate) maxDate = new Date(d); }
+                });
+            });
+
+            let listaFechasDinamica = [];
+            if (minDate && maxDate) {
+                let actual = new Date(minDate); let limite = 0;
+                while (actual <= maxDate && limite < CONFIG.maxCalendarDays) { 
+                   listaFechasDinamica.push(("0" + actual.getDate()).slice(-2) + "/" + ("0" + (actual.getMonth() + 1)).slice(-2) + "/" + actual.getFullYear()); 
+                   actual.setDate(actual.getDate() + 1); limite++;
+                }
+            }
+
+            const registrarActividad = (fecha, tecnico, rol, tag, isDetenida) => {
+                if(fecha && fecha !== "" && tecnico && tecnico.trim() !== "") {
+                    let clave = fecha + "|" + tecnico + "|" + rol;
+                    if(!dataEquipos[clave]) dataEquipos[clave] = { fecha: fecha, equipo: tecnico, rol: rol, tags: [] };
+                    let tagObj = dataEquipos[clave].tags.find(t => t.name === tag);
+                    if(!tagObj) { dataEquipos[clave].tags.push({ name: tag, detenida: isDetenida }); } 
+                    else if (isDetenida) { tagObj.detenida = true; }
+                }
+            };
+
+            datos.forEach(servicio => {
+                if (servicio.id && servicio.id !== "OT - " && !servicio.id.includes("undefined")) {
+                    totalOTs++;
+                    let estadoCrudo = servicio.estado ? String(servicio.estado).trim() : '';
+                    let estadoNormalizado = normalizeText(estadoCrudo);
+                    let isDetenida = estadoNormalizado.includes('detenida');
+                    let causaTSV = servicio.tiempoSinValor || "";
+                    let etapaIndex = resolverEtapa(servicio, estadoNormalizado, stageLabels);
+                    
+                    if (isDetenida && etapaIndex === -1) {
+                        if (hasValue(servicio.tecHidrostatica) && stageMeta.testingIndex >= 0) etapaIndex = stageMeta.testingIndex;
+                        else if (hasValue(servicio.tecModulacion) && stageMeta.instrumentationIndex >= 0) etapaIndex = stageMeta.instrumentationIndex;
+                        else if (hasValue(servicio.tecMantencion)) etapaIndex = stageMeta.maintenanceIndex;
+                        else etapaIndex = stageMeta.firstIndex;
+                    }
+                    
+                    if (isDetenida) { 
+                        equiposDetenidos++; 
+                        let txtMotivo = (causaTSV && causaTSV.toLowerCase() !== "no") ? causaTSV : "No especificado";
+                       tagsDetenidosDetallado.push(`${servicio.tag} (Motivo: ${txtMotivo})`);
+                    } 
+                    if (etapaIndex >= 0 && etapaIndex < stageCount && !isDetenida) { cEtapas[etapaIndex]++; }
+                    
+                   registrarActividad(servicio.fechaDesmontajeReal, servicio.tecDesmontaje, stageLabels[0], servicio.tag, (isDetenida && etapaIndex === 0));
+                   registrarActividad(servicio.fechaMontajeReal, servicio.tecMontaje, stageLabels[lastStageIndex], servicio.tag, (isDetenida && etapaIndex === lastStageIndex));
+
+                    // --- MEJORA 1: Evaluación HSE en Desmontaje y Montaje ---
+                    if ((etapaIndex === stageMeta.firstIndex && servicio.fechaDesmontajeReal !== "") || (etapaIndex === lastStageIndex && servicio.fechaMontajeReal !== "")) {
+                        let checklistData = (servicio.checklistHSE || "").toUpperCase();
+                        let itemsObligatorios = ["FECHA", "FIRMA", "PARE", "EPP", "CHARLA", "BLOQUEO"];
+                        let marcados = 0; let faltantes = [];
+
+                        itemsObligatorios.forEach(item => { if (checklistData.includes(item)) marcados++; else faltantes.push(item); });
+                        reqHseCount += itemsObligatorios.length; okHseCount += marcados;
+
+                        if (marcados < itemsObligatorios.length) { 
+                            let etapaAfectada = etapaIndex === stageMeta.firstIndex ? stageLabels[stageMeta.firstIndex] : stageLabels[lastStageIndex];
+                            tagsDesviacionHSE_Detallado.push(`${servicio.tag} (${etapaAfectada} - Falta: ${faltantes.join(", ")})`); 
+                        }
+                    }
+
+                    if(causaTSV && causaTSV.toLowerCase() !== "no" && causaTSV !== "") { 
+                        tsvConteo[causaTSV] = (tsvConteo[causaTSV] || 0) + 1; 
+                       if(causaTSV.toLowerCase().includes("retrabajo") || causaTSV.toLowerCase().includes("falla") || causaTSV.toLowerCase().includes("rechazo")) retrabajos++;
+                    }
+
+                    const qaGateIndex = stageMeta.certificationIndex >= 0 ? stageMeta.certificationIndex : Math.max(lastStageIndex - 1, 0);
+                    if (etapaIndex >= qaGateIndex && (!servicio.pdfPH || !servicio.pdfConf)) { docFaltantes++; } 
+
+                    let avanceIndividual = etapaIndex === -1 ? 0 : Math.round(((etapaIndex + 1) / stageCount) * 100);
+                    sumaAvanceTotal += avanceIndividual;
+
+                    // --- MEJORA 2: Conteo independiente de Alertas en Montaje y Desmontaje ---
+                    if (servicio.atrasado) { otsAtrasadas++; }
+                    
+                    if (servicio.atrasadoDes) {
+                        let dDP = deTextoAFecha(servicio.fechaDesmontajePlan);
+                        let diasDes = dDP ? Math.floor((ahora - dDP) / 86400000) : 0;
+                        retrasosDesmontaje.push(`${servicio.tag} (${diasDes} días)`);
+                    }
+                    
+                    if (servicio.atrasadoMon) {
+                        let dMP = deTextoAFecha(servicio.fechaMontajePlan);
+                        let diasMon = dMP ? Math.floor((ahora - dMP) / 86400000) : 0;
+                        retrasosMontaje.push(`${servicio.tag} (${diasMon} días)`);
+                    }
+
+                    let dDP = deTextoAFecha(servicio.fechaDesmontajePlan);
+                    if (dDP && dDP <= ahora) { totalActividadesPlanificadas++; if (servicio.fechaDesmontajeReal && servicio.fechaDesmontajeReal.trim() !== "") totalActividadesCompletadas++; }
+
+                    let dMP = deTextoAFecha(servicio.fechaMontajePlan);
+                    if (dMP && dMP <= ahora) { totalActividadesPlanificadas++; if (servicio.fechaMontajeReal && servicio.fechaMontajeReal.trim() !== "") totalActividadesCompletadas++; }
+                    
+                    // Técnicos y responsables se resuelven según el rol de cada etapa configurada.
+                    let techsPorEtapa = stageLabels.map((label, index) => tecnicoParaEtapa(servicio, label, index));
+                    let nombresEtapas = stageLabels;
+
+                    let boxesHtml = "";
+                    for (let j = 0; j < stageCount; j++) {
+                        let boxClass = "tracker-box";
+                        if (etapaIndex !== -1) {
+                            if (etapaIndex === lastStageIndex && !isDetenida) { boxClass += " box-passed"; } 
+                            else {
+                                if (j < etapaIndex) boxClass += " box-passed";
+                                if (j === etapaIndex) boxClass += isDetenida ? " box-detenida" : " box-active";
+                            }
+                        }
+                        // Construcción del tooltip para inyectarlo en cada cajita
+                        let tooltipTracker = `<div class="tooltip-card"><span class="tt-title">📍 ${nombresEtapas[j].toUpperCase()}</span><span class="tt-tech">👨‍🔧 ${techsPorEtapa[j]}</span></div>`;
+                        boxesHtml += `<div class="${boxClass}">${tooltipTracker}</div>`;
+                    }
+                    
+                    let badgeClass = isDetenida ? "avance-badge detenida" : "avance-badge";
+                    let badgeHtml = `<div class="${badgeClass}">${avanceIndividual}%</div>`;
+
+                    let estBadges = "";
+                    if (estadoCrudo !== "" && estadoCrudo.toUpperCase() !== "SIN INICIAR") {
+                        let pills = estadoCrudo.split(',').map(e => {
+                            let eNorm = e.toLowerCase();
+                            if(eNorm.includes('detenida')) return `<span style="color:var(--accent-pink); font-weight:900;">${e.trim().toUpperCase()}</span>`;
+                           if(eNorm.includes('montada') || eNorm.includes('terminada')) return `<span style="color:var(--accent-green); font-weight:900;">${e.trim().toUpperCase()}</span>`;
+                            return `<span style="color:var(--accent-cyan);">${e.trim().toUpperCase()}</span>`;
+                        }).join(' | ');
+                        
+                        if (estadoNormalizado.includes('desmontaje') || estadoNormalizado.includes('traslado')) {
+                            estBadges = `<span style="color:#ffffff; font-size:0.65rem; font-weight:bold; letter-spacing:0.5px;">PROCESO:</span> ${pills}`;
+                        } else { estBadges = pills; }
+                    }
+
+                    let motivoStr = (causaTSV && causaTSV.toLowerCase() !== "no") ? causaTSV.toUpperCase() : "";
+                    let tsvBadge = (motivoStr && isDetenida) ? `<span style="color:#f8fafc; font-size:0.65rem; background:var(--accent-pink); padding:2px 5px; border-radius:3px; margin-top:3px; display:inline-block;">MOTIVO TSV: ${motivoStr}</span>` : "";
+
+                    let textoEstadoOperativo = "";
+                    if (estadoCrudo === "SIN INICIAR" || estadoCrudo === "") { textoEstadoOperativo = `<span class="txt-vacio">SIN INICIAR</span>`; } 
+                    else { textoEstadoOperativo = `<span style="display:block;">${estBadges} <br>${tsvBadge}</span>`; }
+
+                    let numeroOTLimpio = asText(servicio.id).replace("OT - ", "");
+                    let alertaAtraso = servicio.atrasado ? `<span class="txt-atraso">⚠️ Atrasada respecto al plan</span>` : "";
+
+                    let urlPH = safeHttpUrl(servicio.pdfPH);
+                    let btnPH = urlPH ? `<a href="${escapeHtml(urlPH)}" rel="noopener noreferrer" target="_blank" class="report-btn report-ph">📄 P.H.</a>` : `<span class="report-btn report-ph" style="opacity:0.3; cursor:not-allowed;">📄 P.H.</span>`;
+                    let urlConf = safeHttpUrl(servicio.pdfConf);
+                    let btnConf = urlConf ? `<a href="${escapeHtml(urlConf)}" rel="noopener noreferrer" target="_blank" class="report-btn report-conf">📄 CONF.</a>` : `<span class="report-btn report-conf" style="opacity:0.3; cursor:not-allowed;">📄 CONF.</span>`;
+
+                    servicio.etapaNum = etapaIndex; servicio.estadoDetenido = isDetenida;
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td><span class="tag-style">${escapeHtml(servicio.tag)}</span></td>
+                        <td><span class="ot-number">${escapeHtml(numeroOTLimpio)}</span><br><span class="text-area">${escapeHtml(servicio.area)}</span></td>
+                       <td>${escapeHtml(servicio.tipo)}</td>
+                        <td><div class="tracker-wrapper"><div class="tracker-text">${textoEstadoOperativo} ${alertaAtraso}</div><div class="tracker-boxes">${boxesHtml} ${badgeHtml}</div></div></td>
+                        <td><div class="report-container">${btnPH}${btnConf}</div></td>
+                    `;
+                   fragmentoTabla.appendChild(row);
+                }
+            });
+
+           tableBody.appendChild(fragmentoTabla);
+           
+           renderizarGanttDiario(listaFechasDinamica, datos, hoyStr);
+           renderizarTablaEquipos(dataEquipos);
+
+            let panelAlertas = document.getElementById("panel-alertas");
+            let divRetraso = document.getElementById("gantt-alert");
+            let divDetenidos = document.getElementById("detenidos-alert");
+            let divHse = document.getElementById("hse-alert");
+            
+            let txtRetraso = document.getElementById("gantt-alert-text");
+            let txtDetenidos = document.getElementById("detenidos-alert-text");
+            let txtHse = document.getElementById("hse-alert-text");
+
+            let mostrarPanel = false;
+
+            if (retrasosDesmontaje.length > 0 || retrasosMontaje.length > 0) {
+                let msgHtml = "";
+                if (retrasosDesmontaje.length > 0) {
+                    msgHtml += `<strong style="color:#c62828;">DESMONTAJE/TRASLADO (${retrasosDesmontaje.length}):</strong><br> • ${retrasosDesmontaje.join("<br> • ")}<br><br>`;
+                }
+                if (retrasosMontaje.length > 0) {
+                    msgHtml += `<strong style="color:#c62828;">MONTAJE (${retrasosMontaje.length}):</strong><br> • ${retrasosMontaje.join("<br> • ")}`;
+                }
+                txtRetraso.innerHTML = msgHtml;
+                divRetraso.style.display = "block"; mostrarPanel = true;
+            } else { divRetraso.style.display = "none"; }
+
+            if (tagsDetenidosDetallado.length > 0) {
+                txtDetenidos.innerHTML = `TAGS AFECTADOS:<br> • ${tagsDetenidosDetallado.join("<br> • ")}`;
+                divDetenidos.style.display = "block"; mostrarPanel = true;
+            } else { divDetenidos.style.display = "none"; }
+
+            if (tagsDesviacionHSE_Detallado.length > 0) {
+                txtHse.innerHTML = `TAGS AFECTADOS:<br> • ${tagsDesviacionHSE_Detallado.join("<br> • ")}`;
+                divHse.style.display = "block"; mostrarPanel = true;
+            } else { divHse.style.display = "none"; }
+
+            panelAlertas.style.display = mostrarPanel ? "flex" : "none";
+
+            let sCurveLabels = [], sCurveDesPlan = [], sCurveDesReal = [], sCurveMonPlan = [], sCurveMonReal = [];
+            let accDesPlan = 0, accDesReal = 0, accMonPlan = 0, accMonReal = 0;
+
+           listaFechasDinamica.forEach(fechaStr => {
+               sCurveLabels.push(fechaStr.substring(0, 5)); 
+                let curDesPlan = 0, curDesReal = 0, curMonPlan = 0, curMonReal = 0;
+
+                datos.forEach(s => {
+                    if (s.fechaDesmontajePlan === fechaStr) curDesPlan++;
+                    if (s.fechaDesmontajeReal === fechaStr) curDesReal++;
+                    if (s.fechaMontajePlan === fechaStr) curMonPlan++;
+                    if (s.fechaMontajeReal === fechaStr) curMonReal++;
+                });
+
+                accDesPlan += curDesPlan; accDesReal += curDesReal; accMonPlan += curMonPlan; accMonReal += curMonReal;
+                sCurveDesPlan.push(accDesPlan); sCurveDesReal.push(accDesReal); sCurveMonPlan.push(accMonPlan); sCurveMonReal.push(accMonReal);
+            });
+
+            if (resultado.rrhh && typeof resultado.rrhh.asistenciaHoy !== "undefined") {
+               document.getElementById("kpi-rrhh").innerHTML = `${resultado.rrhh.asistenciaHoy}`;
+            }
+
+            let porcentajeAvance = totalOTs > 0 ? Math.round(sumaAvanceTotal / totalOTs) : 0;
+            let porcentajeCumplimiento = totalActividadesPlanificadas > 0 ? Math.round((totalActividadesCompletadas / totalActividadesPlanificadas) * 100) : 0;
+            let porcentajeHse = reqHseCount > 0 ? Math.round((okHseCount / reqHseCount) * 100) : 100;
+            
+           document.getElementById("kpi-avance").innerHTML = `${porcentajeAvance}<span class="unit">%</span>`;
+           document.getElementById("kpi-cumplimiento").innerHTML = `${porcentajeCumplimiento}<span class="unit">%</span>`;
+           
+           document.getElementById("kpi-total").innerText = totalOTs;
+            const maintenanceCount = cEtapas[stageMeta.maintenanceIndex] || 0;
+           document.getElementById("kpi-prod-hoy").innerText = `+${maintenanceCount}`;
+            document.getElementById("kpi-prod-hoy").classList.toggle("text-green", maintenanceCount > 0);
+
+           document.getElementById("kpi-qaqc").innerText = docFaltantes; document.getElementById("kpi-retrabajo").innerText = retrabajos;
+            renderizarCuellosBotella(stageLabels, cEtapas, otsAtrasadas);
+
+            const hseDOM = document.getElementById("kpi-hse"); hseDOM.innerHTML = `${porcentajeHse}<span class="unit">%</span>`;
+            if (porcentajeHse < 100) { hseDOM.style.color = "var(--accent-pink)"; } else { hseDOM.style.color = "var(--accent-green)"; }
+            
+            const detDOM = document.getElementById("kpi-detenidos"); detDOM.innerText = equiposDetenidos; 
+            if (equiposDetenidos > 0) { detDOM.style.color = "var(--accent-pink)"; } else { detDOM.style.color = "var(--text-main)"; }
+
+            const atrDOM = document.getElementById("kpi-atrasados"); atrDOM.innerText = otsAtrasadas;
+            if (otsAtrasadas > 0) { atrDOM.style.color = "var(--accent-pink)"; } else { atrDOM.style.color = "var(--text-main)"; }
+
+            var cAvance = document.getElementById('graficoAvance'); if(cAvance) dibujarGraficoTaller(cEtapas, equiposDetenidos, cAvance);
+            var cCurvaS = document.getElementById('graficoPlanVsReal'); if(cCurvaS) dibujarGraficoCurvaS(sCurveLabels, sCurveDesPlan, sCurveDesReal, sCurveMonPlan, sCurveMonReal, cCurvaS);
+            var cTSV = document.getElementById('graficoTSV'); if(cTSV) dibujarGraficoTSV(tsvConteo, cTSV);
+            
+            var cIncid = document.getElementById('graficoIncidentes');
+            if(cIncid) { let hseStats = resultado.statsHse || { casi: 0, sinLti: 0, conLti: 0, fatal: 0 }; dibujarGraficoIncidentes(hseStats.casi, hseStats.sinLti, hseStats.conLti, hseStats.fatal, cIncid); }
+
+            registrarHistoricoPlanta({
+                totalAssets:totalOTs,
+                totalOTs,
+                advance:porcentajeAvance,
+                compliance:porcentajeCumplimiento,
+                hse:porcentajeHse,
+                delayed:otsAtrasadas,
+                stopped:equiposDetenidos,
+                rework:retrabajos,
+                missingDocuments:docFaltantes,
+                workforce:Number(resultado.rrhh?.asistenciaHoy || 0),
+                stages:cEtapas
+            }, datos);
+        }
+
+        function renderizarCuellosBotella(stageLabels, stageCounts, delayedCount) {
+            const panel = $('bottleneck-panel');
+            if (!panel) return;
+            const rows = stageLabels.map((label, index) => {
+                const role = inferirRolEtapa(label);
+                let style = '';
+                if (role === 'TESTING') style = 'color:var(--accent-pink);font-weight:bold;';
+                if (role === 'FINISHED_STOCK' || role === 'CERTIFICATION' || role === 'ASSEMBLY') style = 'color:var(--accent-green);font-weight:bold;';
+                return `<div class="bn-row"><span class="bn-label">${escapeHtml(label)}:</span><span class="bn-val" style="${style}">${Number(stageCounts[index] || 0)}</span></div>`;
+            }).join('');
+            panel.innerHTML = `${rows}<div class="bn-row" style="margin-top:5px;border-top:2px dashed rgba(255,75,114,.4);padding-top:5px;"><span class="bn-label" style="color:var(--accent-pink);">⚠️ Total Retrasos:</span><span class="bn-val" style="color:var(--text-main);background:var(--accent-pink);font-weight:bold;">${Number(delayedCount || 0)}</span></div>`;
+        }
+
+        function renderizarGanttDiario(listaFechas, datos, hoyStr) {
+            const headerRow = document.getElementById("gantt-header"); const bodyContainer = document.getElementById("gantt-body");
+            headerRow.innerHTML = "<th>ETAPA / PROGRAMA</th>";
+            listaFechas.forEach(f => {
+                let dateObj = deTextoAFecha(f); let diasSemana = ["DOM", "LUN", "MAR", "MIE", "JUE", "VIE", "SAB"];
+                let diaTexto = dateObj ? diasSemana[dateObj.getDay()] : "S/D"; let fechaCorta = f.substring(0, 5); 
+                headerRow.innerHTML += `<th>${diaTexto}<br>${fechaCorta}</th>`;
+            });
+
+            const stageLabels = normalizedStages(getActivePlant());
+            const lastStageIndex = stageLabels.length - 1;
+            let estructurasGantt = [ { titulo: `${stageLabels[0].toUpperCase()} PLANIFICADO`, tipo: "des_plan" }, { titulo: `${stageLabels[lastStageIndex].toUpperCase()} PLANIFICADO`, tipo: "mon_plan" } ];
+            
+            const crearTooltipHTML = (tipo, tecnico, fotoUrl) => {
+                let safePhoto = safeHttpUrl(fotoUrl);
+                let fotoHtml = safePhoto ? `<img src="${escapeHtml(safePhoto)}" class="tt-photo" alt="Evidencia">` : `<span class="tt-nophoto">📷 Ver en AppSheet</span>`;
+                return `<div class="tooltip-card"><span class="tt-title">🛠️ ${tipo.toUpperCase()}</span><span class="tt-tech">👨‍🔧 ${tecnico || 'No asignado'}</span>${fotoHtml}</div>`;
+            };
+
+            let htmlGantt = "";
+            estructurasGantt.forEach(linea => {
+                let rowHtml = `<tr><td class="gantt-row-title">${linea.titulo}</td>`;
+                listaFechas.forEach(fecha => {
+                    let tagsHtmlInCell = "";
+                    datos.forEach(s => {
+                        if (linea.tipo === "des_plan" && s.fechaDesmontajePlan === fecha) {
+                            let clase = ""; let tooltip = "Desmontaje";
+                            let isActivo = (s.etapaNum === 0); let isTerminado = (s.etapaNum >= 1); 
+
+                            if (s.estadoDetenido && isActivo) { clase = "alert-detenida"; tooltip = "Desmontaje (DETENIDO)"; } 
+                            else if (isTerminado) { clase = "done"; tooltip = "Desmontaje (TERMINADO)"; } 
+                            else if (isActivo) { clase = "blink-action"; tooltip = "Desmontaje (EN PROCESO)"; } 
+                            else if (s.atrasadoDes) { clase = "blink-delayed"; tooltip = "Desmontaje (ATRASADO)"; }
+                            
+                            tagsHtmlInCell += `<div class="gantt-tag-block ${clase}" title="${tooltip}">${s.tag} ${crearTooltipHTML(tooltip, s.tecDesmontaje, s.fotoUrl)}</div>`;
+                        }
+                        
+                        if (linea.tipo === "mon_plan" && s.fechaMontajePlan === fecha) {
+                            let clase = ""; let tooltip = "Montaje";
+                            let isActivo = (s.etapaNum === lastStageIndex && !normalizeText(s.estado).includes("terminada") && !normalizeText(s.estado).includes("torqueada"));
+                            let isTerminado = (s.etapaNum > lastStageIndex || (s.etapaNum === lastStageIndex && (normalizeText(s.estado).includes("terminada") || normalizeText(s.estado).includes("torqueada") || normalizeText(s.estado).includes("montada"))));
+                            
+                            if (s.estadoDetenido && isActivo) { clase = "alert-detenida"; tooltip = "Montaje (DETENIDO)"; } 
+                            else if (isTerminado) { clase = "done"; tooltip = "Montaje (TERMINADO)"; } 
+                            else if (isActivo) { clase = "blink-action"; tooltip = "Montaje (EN PROCESO)"; } 
+                            else if (s.atrasadoMon) { clase = "blink-delayed"; tooltip = "Montaje (ATRASADO)"; }
+                            
+                            tagsHtmlInCell += `<div class="gantt-tag-block ${clase}" title="${tooltip}">${s.tag} ${crearTooltipHTML(tooltip, s.tecMontaje, s.fotoUrl)}</div>`;
+                        }
+                    });
+                    rowHtml += `<td>${tagsHtmlInCell}</td>`;
+                });
+                rowHtml += "</tr>"; htmlGantt += rowHtml;
+            });
+            bodyContainer.innerHTML = htmlGantt;
+        }
+
+        function renderizarTablaEquipos(dataEquipos) {
+            const body = document.getElementById("body-historico-equipos"); body.innerHTML = "";
+            let arrayEquipos = Object.values(dataEquipos);
+            if (arrayEquipos.length === 0) { body.innerHTML = `<tr><td colspan="5" class="status-message">Sin registros operacionales por equipos.</td></tr>`; return; }
+            arrayEquipos.sort((a,b) => deTextoAFecha(b.fecha) - deTextoAFecha(a.fecha));
+
+            arrayEquipos.forEach(item => {
+                let listTags = item.tags.map(t => {
+                    if (t.detenida) { return `<span class="tag-pill alert-detenida" style="border-color: var(--accent-pink); color: white;" title="El proceso fue detenido">🛑 ${t.name}</span>`; }
+                    return `<span class="tag-pill">${t.name}</span>`;
+                }).join("");
+
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td class="date-badge">${item.fecha}</td><td><span class="team-badge">👨‍🔧 ${item.equipo.toUpperCase()}</span></td><td style="color:var(--text-main); font-weight:600;">${item.rol}</td><td>${listTags}</td><td style="color:var(--accent-green); font-weight:900; font-size:1.1rem; text-align:center;">${item.tags.length}</td>`;
+                body.appendChild(tr);
+            });
+        }
+
+        function dibujarGraficoTaller(stageCounts, stoppedCount, canvas) {
+            const labels = [...normalizedStages(getActivePlant()), 'Detenida'];
+            const data = [...stageCounts, stoppedCount];
+            const palette = [colors.purple, colors.orange, '#64b5f6', '#f472b6', '#fb7185', '#38bdf8', colors.cyan, colors.green, '#22d3ee', '#e879f9', '#facc15', '#94a3b8'];
+            const backgroundColor = stageCounts.map((_, index) => palette[index % palette.length]).concat(colors.pink);
+            if (APP_STATE.charts.taller) {
+                APP_STATE.charts.taller.data.labels = labels;
+                APP_STATE.charts.taller.data.datasets[0].data = data;
+                APP_STATE.charts.taller.data.datasets[0].backgroundColor = backgroundColor;
+                APP_STATE.charts.taller.update();
+            } else {
+                const ctx = canvas.getContext('2d');
+                APP_STATE.charts.taller = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor, borderWidth: 2, borderColor: '#001233' }] }, options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels:{boxWidth:8, padding:4, font:{size:9}, color: '#8ab4f8'} } } } });
+            }
+        }
+
+        function dibujarGraficoCurvaS(etiquetas, desPlan, desReal, monPlan, monReal, canvas) {
+            if (APP_STATE.charts.curvaS) { APP_STATE.charts.curvaS.data.labels = etiquetas; APP_STATE.charts.curvaS.data.datasets[0].data = desPlan; APP_STATE.charts.curvaS.data.datasets[1].data = desReal; APP_STATE.charts.curvaS.data.datasets[2].data = monPlan; APP_STATE.charts.curvaS.data.datasets[3].data = monReal; APP_STATE.charts.curvaS.update(); } 
+            else { const ctx = canvas.getContext('2d'); APP_STATE.charts.curvaS = new Chart(ctx, { type: 'line', data: { labels: etiquetas, datasets: [ { label: 'Plan Desmontaje', data: desPlan, borderColor: '#3b82f6', borderDash: [6, 4], stepped: true, pointRadius: 2, borderWidth: 2 }, { label: 'Real Desmontaje', data: desReal, borderColor: '#ef4444', stepped: true, borderWidth: 3, pointRadius: 4, backgroundColor: '#ef4444' }, { label: 'Plan Montaje', data: monPlan, borderColor: '#65a30d', borderDash: [6, 4], stepped: true, pointRadius: 2, borderWidth: 2 }, { label: 'Real Montaje', data: monReal, borderColor: '#d946ef', stepped: true, borderWidth: 3, pointRadius: 4, backgroundColor: '#d946ef' } ] }, options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, layout: { padding: { left: 5, right: 15 } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 9 }, color: '#8ab4f8', maxRotation: 45, minRotation: 0 } }, y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#8ab4f8' }, grid: { color: colors.bg } } }, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 9 }, color: '#8ab4f8', usePointStyle: true } }, tooltip: { backgroundColor: 'rgba(0,18,51,0.9)', titleColor: '#00f2fe', bodyColor: '#fff', borderColor: '#00f2fe', borderWidth: 1 } } } }); }
+        }
+
+        function dibujarGraficoTSV(tsvConteo, canvas) {
+            const etiquetas = Object.keys(tsvConteo); const valores = Object.values(tsvConteo);
+            if (etiquetas.length === 0) { etiquetas.push("Operación Normal"); valores.push(0); }
+            if (APP_STATE.charts.tsv) { APP_STATE.charts.tsv.data.labels = etiquetas; APP_STATE.charts.tsv.data.datasets[0].data = valores; APP_STATE.charts.tsv.update(); } 
+            else { const ctx = canvas.getContext('2d'); APP_STATE.charts.tsv = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colors.pink, borderRadius: 4, barThickness: 12 }] }, options: { maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { stepSize: 1, font:{size:10}, color: '#8ab4f8' }, grid: { color: colors.bg } }, y: { ticks: { font:{size:9}, color: '#8ab4f8' }, grid: { display: false } } }, plugins: { legend: { display: false } } } }); }
+        }
+
+        function dibujarGraficoIncidentes(casi, sinLti, conLti, fatal, canvas) {
+            if (APP_STATE.charts.incidentes) { APP_STATE.charts.incidentes.data.datasets[0].data = [casi, sinLti, conLti, fatal]; APP_STATE.charts.incidentes.update(); } 
+            else { const ctx = canvas.getContext('2d'); APP_STATE.charts.incidentes = new Chart(ctx, { type: 'bar', data: { labels: ['Cuasi Accid.', 'Sin T.P.', 'Con T.P.', 'Fatal'], datasets: [{ data: [casi, sinLti, conLti, fatal], backgroundColor: [colors.cyan, colors.green, colors.orange, colors.pink], borderRadius: 4, barThickness: 30 }] }, options: { maintainAspectRatio: false, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#8ab4f8' } }, y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 }, color: '#8ab4f8' }, grid: { color: colors.bg } } }, plugins: { legend: { display: false } } } }); }
+        }
+
+        let filterFrame = null;
+        function filtrarTabla() {
+            cancelAnimationFrame(filterFrame);
+            filterFrame = requestAnimationFrame(() => {
+                const filter = normalizeText($("buscadorTabla").value);
+                const rows = $("tablaOperacional").tBodies[0]?.rows || [];
+                for (const row of rows) row.hidden = !normalizeText(row.textContent).includes(filter);
+            });
+        }
+        
+        function enviarReporteEmail() {
+            let fechaHoraElement = document.getElementById("txt-timestamp");
+            let fechaHora = fechaHoraElement ? fechaHoraElement.innerText.replace("Sincronizando en vivo...", "").trim() : new Date().toLocaleString('es-CL');
+            
+            let mensaje = `REPORTE DE ALERTAS OPERACIONALES\nPLANTA: ${getActivePlant().name}\nPLANTILLA: ${getActivePlant().templateKey} v${getActivePlant().templateVersion}\n${fechaHora}\n\n`;
+            let hayAlertas = false;
+
+            let divRetraso = document.getElementById("gantt-alert");
+            if (divRetraso.style.display === "block") {
+                let textoRetraso = document.getElementById("gantt-alert-text").innerText;
+                mensaje += `--- ⚠️ ALERTAS DE RETRASO ---\n${textoRetraso}\n\n`;
+                hayAlertas = true;
+            }
+
+            let divDetenidos = document.getElementById("detenidos-alert");
+            if (divDetenidos.style.display === "block") {
+                 let textoDetenidos = document.getElementById("detenidos-alert-text").innerText;
+                mensaje += `--- 🛑 EQUIPOS DETENIDOS ---\n${textoDetenidos}\n\n`;
+                hayAlertas = true;
+            }
+
+            let divHse = document.getElementById("hse-alert");
+            if (divHse.style.display === "block") {
+                let textoHse = document.getElementById("hse-alert-text").innerText;
+                mensaje += `--- 🦺 DESVIACIONES HSE ---\n${textoHse}\n\n`;
+                hayAlertas = true;
+            }
+
+            if (!hayAlertas) {
+                mensaje += "✅ No se registran alertas activas en este momento.\n";
+            }
+            
+            const subject = encodeURIComponent(`Reporte Operacional · ${getActivePlant().name}`);
+            const body = encodeURIComponent(mensaje);
+            
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        }
+
+        // --- LÓGICA ESCÁNER QR ---
+        let html5QrcodeScanner = null;
+
+        function abrirEscanerQR() {
+            $('qr-dialog').showModal();
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader", { fps: 10, qrbox: {width: 250, height: 250}, rememberLastUsedCamera: true }, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            $('buscadorTabla').value = decodedText;
+            filtrarTabla();
+            setConnectionMessage(`✅ TAG ${decodedText} escaneado correctamente`, 'success');
+            cerrarEscanerQR();
+            $('tablaOperacional').scrollIntoView({ behavior: "smooth" });
+        }
+
+        function onScanFailure(error) {
+            // Ignorado silenciosamente
+        }
+
+        function cerrarEscanerQR() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(error => console.error("Error limpiando escáner", error));
+            }
+            cerrarDialogo('qr-dialog');
+        }
+</script>
+
+<script>
+// --- REGISTRO DEL SERVICE WORKER (PWA OFFLINE) ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('ServiceWorker de Leanvalv registrado con éxito. Alcance:', registration.scope);
+      })
+      .catch(error => {
+        console.log('Error al registrar el ServiceWorker:', error);
+      });
+  });
+}
+</script>
+
+</body>
+</html>

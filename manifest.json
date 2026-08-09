@@ -1,0 +1,17 @@
+{
+  "name": "Leanvalv OMS",
+  "short_name": "Leanvalv",
+  "description": "Centro de Mando Operacional para mantenimiento de válvulas",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#001233",
+  "theme_color": "#00f2fe",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1973/1973809.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
