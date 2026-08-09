@@ -28,14 +28,14 @@
 
         html { scroll-behavior: smooth; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-dark); margin: 0; padding: 0; color: var(--text-main); overflow-x: hidden; min-height: 100vh; }
-        #wrapper { width: 100%; margin: 0 auto; padding: 10px 15px; box-sizing: border-box; }
+        #wrapper { width: 100%; max-width: 100vw; margin: 0 auto; padding: 10px 15px; box-sizing: border-box; overflow-x: hidden; }
         
         .top-fixed-section { position: sticky; top: 0; background-color: var(--bg-dark); z-index: 2000; padding-top: 10px; margin-top: -10px; padding-bottom: 5px; border-bottom: 1px solid rgba(0, 242, 254, 0.2); box-shadow: 0 5px 15px rgba(0, 18, 51, 0.9); }
-        header { background: linear-gradient(90deg, rgba(0, 60, 200, 0.4) 0%, rgba(0, 15, 50, 0.2) 100%); border: 1px solid var(--panel-border); border-left: 4px solid var(--accent-cyan); padding: 8px 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        header { background: linear-gradient(90deg, rgba(0, 60, 200, 0.4) 0%, rgba(0, 15, 50, 0.2) 100%); border: 1px solid var(--panel-border); border-left: 4px solid var(--accent-cyan); padding: 8px 15px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         header h1 { margin: 0; font-size: 1.2rem; font-weight: 700; text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
         header p { margin: 2px 0 0 0; color: var(--text-muted); font-size: 0.75rem; }
         
-        .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
         .timestamp { color: var(--text-main); font-size: 0.7rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 5px;}
         
         .sync-dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--accent-green); display: inline-block; }
@@ -55,7 +55,7 @@
         .brand-badge { background: var(--accent-cyan); color: var(--bg-dark); padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.6rem; margin-top: 4px; display: inline-block; }
 
         .kpi-section-title { margin-top: 0; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;}
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 10px; }
         .kpi-card { background: var(--panel-bg); padding: 8px; border-radius: 6px; border: 1px solid var(--panel-border); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .kpi-card h3 { margin: 0 0 2px 0; font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
         .kpi-card .value { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
@@ -70,18 +70,24 @@
 
         .dashboard-middle { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-bottom: 15px; }
         
-        .chart-container, .table-container, .gantt-container { background: var(--panel-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--panel-border); margin-bottom: 12px; }
+        /* CORRECCIÓN MÓVIL: SCROLL HORIZONTAL EN CONTENEDORES DE TABLAS */
+        .chart-container, .table-container, .gantt-container { background: var(--panel-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--panel-border); margin-bottom: 12px; width: 100%; box-sizing: border-box; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .chart-container h3, .header-tabla h2, .gantt-container h3 { margin-top: 0; color: var(--text-main); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; }
         
-        .chart-wrapper { position: relative; height: 180px; width: 100%; display: flex; justify-content: center; }
+        .chart-wrapper { position: relative; height: 180px; width: 100%; display: flex; justify-content: center; min-width: 250px;}
 
         .bottleneck-panel { background: rgba(0, 18, 51, 0.4); padding: 8px; border-radius: 6px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 5px; }
         .bn-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; padding: 3px 8px; border-bottom: 1px solid rgba(255,255,255,0.05);}
         .bn-label { color: var(--text-muted); font-weight: 600; }
         .bn-val { font-weight: 700; color: var(--text-main); background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;}
         
-        .gantt-container { overflow-x: auto; }
-        .gantt-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 700px; } /* Evita que las tablas se aplasten */
+        .gantt-table { min-width: 900px; } /* Gantt necesita más espacio */
+        
+        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;}
+        tr:hover { background-color: rgba(255,255,255,0.05); }
+
         .gantt-table th { background: rgba(0,0,0,0.3); color: var(--text-muted); text-align: center; padding: 6px; font-size: 0.7rem; border: 1px solid var(--panel-border); min-width: 70px;}
         .gantt-table td { padding: 5px; border: 1px solid var(--panel-border); vertical-align: top; background: rgba(0,0,0,0.1); }
         .gantt-row-title { font-weight: 700; font-size: 0.7rem; color: var(--text-main); background: rgba(0, 85, 255, 0.1) !important; width: 150px; text-transform: uppercase; }
@@ -126,15 +132,9 @@
         .date-badge { color: var(--text-muted); font-family: monospace; font-size: 0.75rem;}
         .tag-pill { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 2px 5px; border-radius: 4px; font-size: 0.7rem; margin: 2px; display: inline-block; font-family: monospace; color: var(--accent-cyan);}
 
-        .table-container { grid-column: 1 / -1; overflow-x: auto; margin-bottom: 0; }
-        .header-tabla { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .header-tabla { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
         .search-box input { padding: 6px 12px; width: 250px; border: 1px solid var(--panel-border); border-radius: 15px; outline: none; font-size: 0.8rem; background: rgba(0,0,0,0.2); color: white; transition: border-color 0.3s;}
         .search-box input:focus { border-color: var(--accent-cyan); }
-        
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; }
-        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px;}
-        tr:hover { background-color: rgba(255,255,255,0.05); }
         
         .ot-number { font-size: 1.2rem; font-weight: 800; font-family: monospace; color: var(--text-main); }
         .tag-style { background-color: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 1.1rem; font-weight: 800; font-family: monospace; color: var(--accent-cyan); display: inline-block; margin-bottom: 4px; border: 1px solid var(--panel-border);}
@@ -163,13 +163,15 @@
         .connection-banner { display:none; margin:0 0 10px; padding:8px 12px; border:1px solid var(--accent-orange); border-radius:6px; color:var(--accent-orange); background:rgba(245,158,11,.08); font-size:.75rem; }
         .connection-banner.visible { display:block; }
         button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:2px; }
+        
+        /* CORRECCIÓN DE PANTALLA EN CELULARES */
         @media (max-width: 760px) {
-            #wrapper { padding: 8px; }
-            header { align-items:flex-start; gap:10px; }
+            #wrapper { padding: 6px; }
+            header { flex-direction: column; align-items:flex-start; gap:10px; }
             .header-controls { width:100%; align-items:stretch; }
             .btn-group { justify-content:flex-start; }
-            .search-box input { width:min(100%, 280px); }
-            .chart-wrapper { height:220px; }
+            .search-box input { width:min(100%, 200px); }
+            .chart-wrapper { height:220px; min-width: 100%; }
         }
 
         .report-btn { display: inline-flex; align-items: center; justify-content: center; background: rgba(138, 180, 248, 0.1); color: var(--text-main); border: 1px solid var(--panel-border); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer; text-decoration: none; width: 65px; margin-bottom: 4px; }
@@ -219,34 +221,6 @@
         .form-help { color:var(--text-muted); font-size:.62rem; line-height:1.4; }
         .dialog-actions { display:flex; justify-content:flex-end; gap:7px; flex-wrap:wrap; margin-top:14px; }
         .empty-plant { padding:20px; text-align:center; color:var(--text-muted); border:1px dashed var(--panel-border); border-radius:8px; }
-        @media (max-width:760px) {
-            .strategy-body { grid-template-columns:1fr; }
-            .form-grid { grid-template-columns:1fr; }
-            .form-field.full { grid-column:auto; }
-            .maturity-track { grid-template-columns:repeat(2,1fr); }
-        }
-
-        /* CSS IMPRESIÓN CORREGIDO - CONTRASTE MEJORADO */
-        @media print {
-            @page { size: landscape; margin: 10mm; }
-            html, body { background-color: white !important; color: black !important; overflow: visible !important; height: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #wrapper { overflow: visible !important; height: auto !important; padding: 0 !important; }
-            .top-fixed-section { position: relative !important; box-shadow: none !important; border-bottom: 2px solid #000; margin-bottom: 20px; }
-            .header-controls, .search-box, .btn-group, .sync-dot, dialog, .strategy-actions { display: none !important; }
-            .kpi-card, .chart-container, .table-container, .gantt-container { background: white !important; border: 1px solid #ccc !important; box-shadow: none !important; page-break-inside: avoid; }
-            * { text-shadow: none !important; animation: none !important; }
-            h1, h2, h3, th, td, span, div { color: black !important; border-color: #ccc !important; }
-            
-            /* Mejoras de contraste en tags y fondos */
-            .tag-style { background-color: #e2e8f0 !important; color: #0f172a !important; border: 2px solid #64748b !important; font-weight: 900 !important; }
-            .gantt-tag-block { background-color: #f1f5f9 !important; color: #000 !important; border: 1px solid #94a3b8 !important; font-weight: bold !important; }
-            
-            .brand-badge { background: #000 !important; color: #fff !important; }
-            .alert-box { border: 1px solid #000 !important; color: #000 !important; }
-            .alert-tags { color: #d32f2f !important; }
-            canvas { filter: invert(1); max-width: 100% !important; }
-            ::-webkit-scrollbar { display: none; }
-        }
 
         /* PANTALLA DE LOGIN RESTRINGIDO */
         #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(10px); }
@@ -284,10 +258,11 @@
             </div>
             <div class="header-controls">
                 <div class="btn-group">
+                    <!-- Selector de Plantas (Ahora el cliente SÍ puede usarlo para cambiar entre sus plantas permitidas) -->
                     <select id="filtroServicio" class="btn-refresh" style="background: rgba(0,0,0,0.5); outline: none; padding: 2px 6px;" onchange="cambiarProyecto()" aria-label="Seleccionar planta">
                         <option value="NVA_ALDEA">Cargando plantas...</option>
                     </select>
-                    <!-- Agregamos IDs a los botones para poder ocultarlos a los clientes -->
+                    
                     <button id="btn-nueva-planta" type="button" class="btn-refresh" onclick="abrirDialogoPlanta(false)">➕ Nueva planta</button>
                     <button id="btn-plantilla" type="button" class="btn-refresh" onclick="abrirDialogoPlanta(true)" style="border-color:var(--accent-purple);color:var(--accent-purple);">🧩 Plantilla</button>
                     <button id="btn-registrar-cond" type="button" class="btn-refresh" onclick="abrirDialogoCondicion()" style="border-color:var(--accent-orange);color:var(--accent-orange);">📡 Registrar condición</button>
@@ -403,12 +378,6 @@
                 </div>
                 <div class="readiness-bar" aria-label="Preparación predictiva"><span id="readiness-bar-fill"></span></div>
                 <div class="strategy-next" id="strategy-next-action">Primera acción: definir maestro de activos, criticidad y taxonomía de fallas.</div>
-                <ul class="data-contract">
-                    <li>Un TAG único por activo y por planta.</li>
-                    <li>OT, modo de falla, causa, acción y tiempo detenido.</li>
-                    <li>Criticidad operacional y consecuencia HSE/producción.</li>
-                    <li>Lecturas de condición con fecha, unidad y método.</li>
-                </ul>
             </div>
         </div>
     </section>
@@ -527,7 +496,7 @@
         </div>
         <div class="form-grid">
             <div class="form-field"><label for="plant-code">Código único</label><input id="plant-code" name="code" maxlength="30" required pattern="[A-Za-z0-9_-]+"><span class="form-help">Ejemplo: CELULOSA_VALDIVIA. No usar espacios.</span></div>
-            <div class="form-field"><label for="plant-api-code">Código en backend</label><input id="plant-api-code" name="apiCode" maxlength="50" required><span class="form-help">Valor enviado como parámetro “proyecto”.</span></div>
+            <div class="form-field"><label for="plant-api-code">Código en backend (Planta o Área del Excel)</label><input id="plant-api-code" name="apiCode" maxlength="50" required><span class="form-help">Escribe aquí exactamente el nombre de la columna "Planta" o "Proyecto" de tu Excel para filtrar solo esa área.</span></div>
             <div class="form-field"><label for="plant-name">Nombre de planta</label><input id="plant-name" name="name" maxlength="80" required></div>
             <div class="form-field"><label for="plant-client">Cliente / compañía</label><input id="plant-client" name="client" maxlength="80" required></div>
             <div class="form-field"><label for="plant-location">Ubicación</label><input id="plant-location" name="location" maxlength="100" placeholder="Comuna, región o área"></div>
@@ -585,21 +554,38 @@
 <script>
         "use strict";
 
-        // --- SISTEMA DE SEGURIDAD Y ROLES ---
-        const CODIGO_ADMIN = "LEANVALV26"; 
-        const CODIGO_CLIENTE = "CLIENTE26";
+        // --- SISTEMA DE SEGURIDAD Y ROLES POR CLIENTE ---
+        // Aquí defines qué cliente puede ver qué planta. 
+        // "ALL" permite ver todas las plantas registradas.
+        const CREDENCIALES = {
+            "LEANVALV26": { rol: "admin", plantas: ["ALL"] }, 
+            "COLBUN26":   { rol: "cliente", plantas: ["COLBUN_SANTA_MARIA"] },
+            "ARAUCO26":   { rol: "cliente", plantas: ["NVA_ALDEA", "ARAUCO"] },
+            "CMPC26":     { rol: "cliente", plantas: ["CMPC_LAJA"] }
+        };
 
         function verificarAcceso() {
             const input = document.getElementById('login-pin').value.toUpperCase();
             const btn = document.querySelector('.login-btn');
             
-            if (input === CODIGO_ADMIN || input === CODIGO_CLIENTE) {
+            if (CREDENCIALES[input]) {
+                const acceso = CREDENCIALES[input];
                 btn.innerHTML = "Verificando...";
                 setTimeout(() => {
                     localStorage.setItem('leanvalv_acceso', 'concedido');
-                    localStorage.setItem('leanvalv_rol', input === CODIGO_ADMIN ? 'admin' : 'cliente');
+                    localStorage.setItem('leanvalv_rol', acceso.rol);
+                    localStorage.setItem('leanvalv_plantas_permitidas', JSON.stringify(acceso.plantas));
+                    
+                    // Forzar a la primera planta permitida si es cliente
+                    if(acceso.rol === 'cliente') {
+                        APP_STATE.currentPlantId = acceso.plantas[0];
+                        localStorage.setItem(CONFIG.activePlantKey, acceso.plantas[0]);
+                    }
+                    
                     document.getElementById('login-overlay').style.display = 'none';
+                    renderizarSelectorPlantas();
                     aplicarPermisosRol();
+                    aplicarIdentidadPlanta();
                     obtenerDatosEnVivo();
                 }, 800);
             } else {
@@ -612,7 +598,7 @@
             const rol = localStorage.getItem('leanvalv_rol');
             const esCliente = (rol === 'cliente');
             
-            // Elementos a ocultar para clientes
+            // Ocultamos botones de configuración para el cliente, PERO NO el filtro de plantas.
             const elementosBloqueados = [
                 'btn-nueva-planta', 
                 'btn-plantilla', 
@@ -626,7 +612,6 @@
                 if (el) el.style.display = esCliente ? 'none' : 'inline-block';
             });
 
-            // Etiqueta visual de rol
             const badge = document.getElementById('user-role-badge');
             if (badge) {
                 if (esCliente) {
@@ -644,6 +629,7 @@
         function cerrarSesion() {
             localStorage.removeItem('leanvalv_acceso');
             localStorage.removeItem('leanvalv_rol');
+            localStorage.removeItem('leanvalv_plantas_permitidas');
             location.reload();
         }
 
@@ -790,6 +776,8 @@
             Object.entries(DEFAULT_PLANTS).forEach(([id, plant]) => merged[id] = clone(plant));
             Object.entries(custom || {}).forEach(([id, plant]) => merged[id] = { ...merged[id], ...plant, id, stages: normalizedStages(plant) });
             APP_STATE.plants = merged;
+            
+            // Si hay una planta activa guardada, la intentamos cargar, sino default.
             const savedPlant = localStorage.getItem(CONFIG.activePlantKey);
             APP_STATE.currentPlantId = merged[savedPlant] ? savedPlant : 'NVA_ALDEA';
         }
@@ -805,13 +793,35 @@
         function renderizarSelectorPlantas() {
             const select = $('filtroServicio');
             if (!select) return;
-            const plants = Object.values(APP_STATE.plants).sort((a,b) => {
+            
+            const rol = localStorage.getItem('leanvalv_rol') || 'cliente';
+            const permitidas = JSON.parse(localStorage.getItem('leanvalv_plantas_permitidas') || '[]');
+            
+            let plants = Object.values(APP_STATE.plants);
+            
+            // Filtrar plantas según los permisos del rol
+            if (rol !== 'admin' && !permitidas.includes('ALL')) {
+                plants = plants.filter(p => permitidas.includes(p.id));
+            }
+            
+            plants.sort((a,b) => {
                 if (a.id === 'ALL') return -1;
                 if (b.id === 'ALL') return 1;
                 return a.name.localeCompare(b.name, 'es');
             });
+            
             select.innerHTML = plants.map(plant => `<option value="${escapeHtml(plant.id)}">${plant.id === 'ALL' ? '🌐' : '🏭'} ${escapeHtml(plant.name)}</option>`).join('');
-            select.value = APP_STATE.currentPlantId;
+            
+            // Si el cliente solo tiene 1 planta autorizada, deshabilitar el selector para evitar confusiones
+            select.disabled = (rol !== 'admin' && plants.length <= 1);
+            
+            // Asegurarnos de que el valor activo es válido
+            if(plants.some(p => p.id === APP_STATE.currentPlantId)) {
+                select.value = APP_STATE.currentPlantId;
+            } else if (plants.length > 0) {
+                select.value = plants[0].id;
+                APP_STATE.currentPlantId = plants[0].id;
+            }
         }
 
         function aplicarIdentidadPlanta() {
@@ -1189,17 +1199,17 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             cargarRegistroPlantas();
-            renderizarSelectorPlantas();
-            $('filtroServicio').value = APP_STATE.currentPlantId;
-            aplicarIdentidadPlanta();
-            $('plant-form').addEventListener('submit', guardarPlantaDesdeFormulario);
-            $('condition-form').addEventListener('submit', guardarLecturaCondicion);
-            cargarCachePlantaActiva();
-            actualizarAnaliticaEstrategica();
             
             // VERIFICACIÓN DE SEGURIDAD ANTES DE CARGAR DATOS
             if (localStorage.getItem('leanvalv_acceso') === 'concedido') {
                 document.getElementById('login-overlay').style.display = 'none';
+                renderizarSelectorPlantas();
+                $('filtroServicio').value = APP_STATE.currentPlantId;
+                aplicarIdentidadPlanta();
+                $('plant-form').addEventListener('submit', guardarPlantaDesdeFormulario);
+                $('condition-form').addEventListener('submit', guardarLecturaCondicion);
+                cargarCachePlantaActiva();
+                actualizarAnaliticaEstrategica();
                 aplicarPermisosRol();
                 obtenerDatosEnVivo();
             }
